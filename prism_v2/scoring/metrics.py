@@ -241,8 +241,11 @@ def compute_confidence_consistency(
             [float(d) for d in difficulty_vec],
         )
         if rho is not None:
-            # We expect negative correlation (high confidence = low difficulty)
-            # So negate rho for scoring purposes
+            # Negate rho because we expect an *inverse* relationship:
+            # high prospective confidence (5) should correspond to low
+            # retrospective difficulty (1 = "confident and correct").
+            # A well-calibrated model produces negative rho; negating
+            # converts that into a positive score for the benchmark.
             rhos.append(-rho)
 
     if not rhos:

@@ -74,7 +74,18 @@ def compute_task_4(
     judge_llm=None,
     novelty_level: int = 1,
 ) -> float:
-    """Compute the coherence composite score."""
+    """Compute the coherence composite score.
+
+    Results are cached on the pipeline so that Task 6 can reuse them
+    without re-invoking the expensive LLM judge for counterfactuals.
+    """
+    cache_key = f"t4_l{novelty_level}"
+    if (
+        hasattr(pipeline, "_task_score_cache")
+        and cache_key in pipeline._task_score_cache
+    ):
+        return pipeline._task_score_cache[cache_key]
+
     from prism_v2.scoring.metrics import (
         compute_location_consistency,
         compute_confidence_consistency,
@@ -104,7 +115,13 @@ def compute_task_4(
         judge_llm,
     )
 
-    return compute_coherence_composite(loc_score, conf_score, cf_score)
+    score = compute_coherence_composite(loc_score, conf_score, cf_score)
+
+    # Cache the result for Task 6 reuse
+    if hasattr(pipeline, "_task_score_cache"):
+        pipeline._task_score_cache[cache_key] = score
+
+    return score
 
 
 def compute_task_4_subscores(

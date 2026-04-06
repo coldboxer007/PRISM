@@ -274,10 +274,16 @@ def parse_feedback_round(
     """Parse a combined feedback round response (prospective + solve)."""
     report = FeedbackRoundReport()
 
-    # Split the response: prospective part comes before the solution
-    # Look for where the solving begins (Step 1 of the solution)
+    # Split the response: prospective part comes before the solution.
+    # The prospective section also has "Step 1: [label]" lines for
+    # confidence ratings, so we must NOT match those.  We use a
+    # negative lookahead to skip "Step 1" lines followed by a
+    # confidence label (definitely/probably/uncertain).  The first
+    # "Step 1" that is NOT followed by a confidence label is the
+    # start of the solve section.
+    _conf_labels_lookahead = r"(?!\s*[\"']?(?:definitely|probably|uncertain)\b)"
     solve_marker = re.search(
-        r"\n\s*(?:Step\s+1\s*[:\.]|Now\s+solv|Solution|Let me solve)",
+        rf"\n\s*(?:Step\s+1\s*[:\.]{_conf_labels_lookahead}|Now\s+solv|Solution|Let me solve)",
         response_text,
         re.IGNORECASE,
     )

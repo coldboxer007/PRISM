@@ -39,8 +39,8 @@
     "id": "l1_main_001",
     "novelty_level": 1,
     "problem_type": "B",
-    "difficulty": "medium",
-    "problem_statement": "A customer orders 13 items at $38 each. They receive a 25% discount on the subtotal. A sales tax of 15% is applied after the discount. Finally, a flat shipping fee of $8 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
+    "difficulty": "easy",
+    "problem_statement": "A customer orders 9 items at $3 each. They receive a 10% discount on the subtotal. A sales tax of 10% is applied after the discount. Finally, a flat shipping fee of $10 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
     "num_steps": 5,
     "step_descriptions": [
       "Compute subtotal = price * quantity",
@@ -50,19 +50,19 @@
       "Compute per-unit cost"
     ],
     "ground_truth_steps": [
-      "494",
-      "370.5",
-      "426.08",
-      "434.08",
-      "33.39"
+      "27",
+      "24.3",
+      "26.73",
+      "36.73",
+      "4.08"
     ],
-    "ground_truth_final": "434.08",
+    "ground_truth_final": "36.73",
     "difficulty_metadata": {
-      "price_per_unit": 38,
-      "units": 13,
-      "tax_pct": 15,
-      "discount_pct": 25,
-      "shipping": 8
+      "price_per_unit": 3,
+      "units": 9,
+      "tax_pct": 10,
+      "discount_pct": 10,
+      "shipping": 10
     },
     "operator_preamble": null
   },
@@ -70,26 +70,26 @@
     "id": "l1_main_002",
     "novelty_level": 1,
     "problem_type": "C",
-    "difficulty": "hard",
-    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 23).\nShow your work for each step.\n\nStep 1: Compute 62 mod 23\nStep 2: Add 76 to the result of Step 1, then take mod 23\nStep 3: Multiply the result of Step 2 by 10, then take mod 23\nStep 4: Add 99 to the result of Step 3, then take mod 23\nStep 5: Raise the result of Step 4 to the power 8, then take mod 23",
+    "difficulty": "easy",
+    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 7).\nShow your work for each step.\n\nStep 1: Compute 62 mod 7\nStep 2: Add 76 to the result of Step 1, then take mod 7\nStep 3: Multiply the result of Step 2 by 10, then take mod 7\nStep 4: Add 99 to the result of Step 3, then take mod 7\nStep 5: Raise the result of Step 4 to the power 8, then take mod 7",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute 62 mod 23",
-      "(16 + 76) mod 23",
-      "(0 * 10) mod 23",
-      "(0 + 99) mod 23",
-      "(7^8) mod 23"
+      "Compute 62 mod 7",
+      "(6 + 76) mod 7",
+      "(5 * 10) mod 7",
+      "(1 + 99) mod 7",
+      "(2^8) mod 7"
     ],
     "ground_truth_steps": [
-      "16",
-      "0",
-      "0",
-      "7",
-      "12"
+      "6",
+      "5",
+      "1",
+      "2",
+      "4"
     ],
-    "ground_truth_final": "12",
+    "ground_truth_final": "4",
     "difficulty_metadata": {
-      "modulus": 23,
+      "modulus": 7,
       "operands": [
         62,
         76,
@@ -104,35 +104,35 @@
     "id": "l1_main_003",
     "novelty_level": 1,
     "problem_type": "A",
-    "difficulty": "easy",
-    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: -x = -2\nEquation 2: -x - 3y - z = 17\nEquation 3: -x - 3y - 3z = 25\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = -1/-1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/-1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "difficulty": "medium",
+    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: -x + y + 2z = -29\nEquation 2: -x - 4y - z = 42\nEquation 3: -5y - 4z = 78\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = -1/-1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 0/-1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
       "Compute the multiplier m = A[1][0]/A[0][0] = -1/-1",
-      "Eliminate x from equation 2: new RHS = 17 - 1*-2",
-      "Eliminate x from equation 3: new RHS = 25 - 1*-2",
+      "Eliminate x from equation 2: new RHS = 42 - 1*-29",
+      "Eliminate x from equation 3: new RHS = 78 - 0*-29",
       "Solve the reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
       "1",
-      "19",
-      "27",
-      "-4",
-      "-5"
+      "71",
+      "78",
+      "-7",
+      "-10"
     ],
-    "ground_truth_final": "x = 2, y = -5, z = -4",
+    "ground_truth_final": "x = 5, y = -10, z = -7",
     "difficulty_metadata": {
       "coefficient_range": [
-        -3,
-        3
+        -5,
+        7
       ],
       "solution_range": [
-        -5,
-        5
+        -10,
+        10
       ],
       "has_fractions": true,
-      "determinant": -6
+      "determinant": -5
     },
     "operator_preamble": null
   },
@@ -171,26 +171,26 @@
     "id": "l1_main_005",
     "novelty_level": 1,
     "problem_type": "C",
-    "difficulty": "hard",
-    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 23).\nShow your work for each step.\n\nStep 1: Compute 55 mod 23\nStep 2: Add 18 to the result of Step 1, then take mod 23\nStep 3: Multiply the result of Step 2 by 8, then take mod 23\nStep 4: Add 80 to the result of Step 3, then take mod 23\nStep 5: Raise the result of Step 4 to the power 5, then take mod 23",
+    "difficulty": "medium",
+    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 13).\nShow your work for each step.\n\nStep 1: Compute 55 mod 13\nStep 2: Add 18 to the result of Step 1, then take mod 13\nStep 3: Multiply the result of Step 2 by 8, then take mod 13\nStep 4: Add 80 to the result of Step 3, then take mod 13\nStep 5: Raise the result of Step 4 to the power 5, then take mod 13",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute 55 mod 23",
-      "(9 + 18) mod 23",
-      "(4 * 8) mod 23",
-      "(9 + 80) mod 23",
-      "(20^5) mod 23"
+      "Compute 55 mod 13",
+      "(3 + 18) mod 13",
+      "(8 * 8) mod 13",
+      "(12 + 80) mod 13",
+      "(1^5) mod 13"
     ],
     "ground_truth_steps": [
-      "9",
-      "4",
-      "9",
-      "20",
-      "10"
+      "3",
+      "8",
+      "12",
+      "1",
+      "1"
     ],
-    "ground_truth_final": "10",
+    "ground_truth_final": "1",
     "difficulty_metadata": {
-      "modulus": 23,
+      "modulus": 13,
       "operands": [
         55,
         18,
@@ -205,35 +205,35 @@
     "id": "l1_main_006",
     "novelty_level": 1,
     "problem_type": "A",
-    "difficulty": "easy",
-    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: x - y - 2z = 3\nEquation 2: x + 2y + z = -3\nEquation 3: -x + 3y + z = 2\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = 1/1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "difficulty": "hard",
+    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: 7x - 6z = 14\nEquation 2: 7x + 7y - z = -133\nEquation 3: 6x - 4y + 3z = -58\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = 7/7\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 6/7). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute the multiplier m = A[1][0]/A[0][0] = 1/1",
-      "Eliminate x from equation 2: new RHS = -3 - 1*3",
-      "Eliminate x from equation 3: new RHS = 2 - -1*3",
+      "Compute the multiplier m = A[1][0]/A[0][0] = 7/7",
+      "Eliminate x from equation 2: new RHS = -133 - 1*14",
+      "Eliminate x from equation 3: new RHS = -58 - 0.857143*14",
       "Solve the reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
       "1",
-      "-6",
-      "5",
-      "-3",
-      "1"
+      "-147",
+      "-70",
+      "-14",
+      "-11"
     ],
-    "ground_truth_final": "x = -2, y = 1, z = -3",
+    "ground_truth_final": "x = -10, y = -11, z = -14",
     "difficulty_metadata": {
       "coefficient_range": [
-        -3,
-        3
+        -10,
+        10
       ],
       "solution_range": [
-        -5,
-        5
+        -20,
+        20
       ],
       "has_fractions": true,
-      "determinant": -9
+      "determinant": 539
     },
     "operator_preamble": null
   },
@@ -241,8 +241,8 @@
     "id": "l1_main_007",
     "novelty_level": 1,
     "problem_type": "B",
-    "difficulty": "medium",
-    "problem_statement": "A customer orders 26 items at $50 each. They receive a 5% discount on the subtotal. A sales tax of 7% is applied after the discount. Finally, a flat shipping fee of $16 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
+    "difficulty": "hard",
+    "problem_statement": "A customer orders 44 items at $44 each. They receive a 13.5% discount on the subtotal. A sales tax of 6.5% is applied after the discount. Finally, a flat shipping fee of $30 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
     "num_steps": 5,
     "step_descriptions": [
       "Compute subtotal = price * quantity",
@@ -252,19 +252,19 @@
       "Compute per-unit cost"
     ],
     "ground_truth_steps": [
-      "1300",
-      "1235.0",
-      "1321.45",
-      "1337.45",
-      "51.44"
+      "1936",
+      "1674.64",
+      "1783.49",
+      "1813.49",
+      "41.22"
     ],
-    "ground_truth_final": "1337.45",
+    "ground_truth_final": "1813.49",
     "difficulty_metadata": {
-      "price_per_unit": 50,
-      "units": 26,
-      "tax_pct": 7,
-      "discount_pct": 5,
-      "shipping": 16
+      "price_per_unit": 44,
+      "units": 44,
+      "tax_pct": 6.5,
+      "discount_pct": 13.5,
+      "shipping": 30
     },
     "operator_preamble": null
   },
@@ -378,8 +378,8 @@
     "id": "l1_feedback_001",
     "novelty_level": 1,
     "problem_type": "B",
-    "difficulty": "medium",
-    "problem_statement": "A customer orders 11 items at $29 each. They receive a 18% discount on the subtotal. A sales tax of 12% is applied after the discount. Finally, a flat shipping fee of $13 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
+    "difficulty": "easy",
+    "problem_statement": "A customer orders 10 items at $12 each. They receive a 15% discount on the subtotal. A sales tax of 8% is applied after the discount. Finally, a flat shipping fee of $6 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
     "num_steps": 5,
     "step_descriptions": [
       "Compute subtotal = price * quantity",
@@ -389,19 +389,19 @@
       "Compute per-unit cost"
     ],
     "ground_truth_steps": [
-      "319",
-      "261.58",
-      "292.97",
-      "305.97",
-      "27.82"
+      "120",
+      "102.0",
+      "110.16",
+      "116.16",
+      "11.62"
     ],
-    "ground_truth_final": "305.97",
+    "ground_truth_final": "116.16",
     "difficulty_metadata": {
-      "price_per_unit": 29,
-      "units": 11,
-      "tax_pct": 12,
-      "discount_pct": 18,
-      "shipping": 13
+      "price_per_unit": 12,
+      "units": 10,
+      "tax_pct": 8,
+      "discount_pct": 15,
+      "shipping": 6
     },
     "operator_preamble": null
   },
@@ -409,26 +409,26 @@
     "id": "l1_feedback_002",
     "novelty_level": 1,
     "problem_type": "C",
-    "difficulty": "hard",
-    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 23).\nShow your work for each step.\n\nStep 1: Compute 38 mod 23\nStep 2: Add 55 to the result of Step 1, then take mod 23\nStep 3: Multiply the result of Step 2 by 9, then take mod 23\nStep 4: Add 67 to the result of Step 3, then take mod 23\nStep 5: Raise the result of Step 4 to the power 8, then take mod 23",
+    "difficulty": "easy",
+    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 7).\nShow your work for each step.\n\nStep 1: Compute 38 mod 7\nStep 2: Add 55 to the result of Step 1, then take mod 7\nStep 3: Multiply the result of Step 2 by 9, then take mod 7\nStep 4: Add 67 to the result of Step 3, then take mod 7\nStep 5: Raise the result of Step 4 to the power 8, then take mod 7",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute 38 mod 23",
-      "(15 + 55) mod 23",
-      "(1 * 9) mod 23",
-      "(9 + 67) mod 23",
-      "(7^8) mod 23"
+      "Compute 38 mod 7",
+      "(3 + 55) mod 7",
+      "(2 * 9) mod 7",
+      "(4 + 67) mod 7",
+      "(1^8) mod 7"
     ],
     "ground_truth_steps": [
-      "15",
+      "3",
+      "2",
+      "4",
       "1",
-      "9",
-      "7",
-      "12"
+      "1"
     ],
-    "ground_truth_final": "12",
+    "ground_truth_final": "1",
     "difficulty_metadata": {
-      "modulus": 23,
+      "modulus": 7,
       "operands": [
         38,
         55,
@@ -443,35 +443,35 @@
     "id": "l1_feedback_003",
     "novelty_level": 1,
     "problem_type": "A",
-    "difficulty": "easy",
-    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: x - 3y - 2z = -2\nEquation 2: -3x + y + z = 2\nEquation 3: -x + y - 3z = -14\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = -3/1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "difficulty": "medium",
+    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: 5x - 5y + 6z = -91\nEquation 2: 5x + 5y + z = -21\nEquation 3: 2x + 2y + 7z = -48\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = 5/5\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 2/5). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute the multiplier m = A[1][0]/A[0][0] = -3/1",
-      "Eliminate x from equation 2: new RHS = 2 - -3*-2",
-      "Eliminate x from equation 3: new RHS = -14 - -1*-2",
+      "Compute the multiplier m = A[1][0]/A[0][0] = 5/5",
+      "Eliminate x from equation 2: new RHS = -21 - 1*-91",
+      "Eliminate x from equation 3: new RHS = -48 - 0.4*-91",
       "Solve the reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
-      "-3",
-      "-4",
-      "-16",
-      "4",
-      "-2"
+      "1",
+      "70",
+      "-11.6",
+      "-6",
+      "4"
     ],
-    "ground_truth_final": "x = 0, y = -2, z = 4",
+    "ground_truth_final": "x = -7, y = 4, z = -6",
     "difficulty_metadata": {
       "coefficient_range": [
-        -3,
-        3
+        -5,
+        7
       ],
       "solution_range": [
-        -5,
-        5
+        -10,
+        10
       ],
       "has_fractions": true,
-      "determinant": 30
+      "determinant": 330
     },
     "operator_preamble": null
   },

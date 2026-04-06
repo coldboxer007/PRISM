@@ -12,7 +12,6 @@ Usage in Kaggle notebook:
 
 from dataclasses import dataclass, field
 from typing import Any, Optional
-import json
 
 
 # ---------------------------------------------------------------------------
@@ -97,6 +96,11 @@ class PrismPipeline:
         self._l1_feedback_results: list[FeedbackRoundResult] = []
         self._l2_feedback_results: list[FeedbackRoundResult] = []
         self._has_run = False
+
+        # Task score cache — avoids recomputing expensive judge calls.
+        # Keys like "t4_l1", "t4_l2" store coherence scores so Task 6
+        # can read them instead of re-invoking the LLM judge.
+        self._task_score_cache: dict[str, float] = {}
 
     # ----- Core pipeline execution -----
 
@@ -191,6 +195,7 @@ class PrismPipeline:
         """
         from prism_v2.prompts.system import SYSTEM_PROMPT
         from prism_v2.prompts.prospective import build_prospective_prompt
+        from prism_v2.prompts.solve import build_solve_prompt
         from prism_v2.prompts.feedback import build_feedback_prompt
         from prism_v2.scoring.confidence_parser import (
             parse_prospective,
@@ -231,7 +236,7 @@ class PrismPipeline:
                     rr.d1_confidence_labels = d1_report.confidence_labels
                     rr.d1_bet_correct = d1_report.bet_fraction_correct or 0.5
 
-                    solve_resp = llm.prompt("Now solve the problem step by step.")
+                    solve_resp = llm.prompt(build_solve_prompt())
                     solve_text = str(solve_resp)
                     step_answers = extract_step_answers(solve_text, num_steps)
                     rr.d2_step_correct = score_steps(step_answers, gt_steps)
@@ -378,6 +383,23 @@ class PrismPipeline:
             return 0.0
         problems_with_errors = sum(1 for r in all_results if r.parse_errors)
         return problems_with_errors / len(all_results)
+
+    def get_counterfactual_parse_rate(self) -> float:
+        """Compute the rate of non-empty counterfactual responses.
+
+        Returns the proportion of main problems where the model produced
+        a non-empty COUNTERFACTUAL: response. Low rates indicate the model
+        failed to follow the retrospective prompt format.
+        """
+        all_results = self._l1_results + self._l2_results
+        if not all_results:
+            return 0.0
+        non_empty = sum(
+            1
+            for r in all_results
+            if r.d3_counterfactual and r.d3_counterfactual.strip()
+        )
+        return non_empty / len(all_results)
 
     def summary(self) -> dict:
         """Return a summary of the pipeline run."""

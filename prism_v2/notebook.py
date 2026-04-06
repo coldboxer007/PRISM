@@ -123,32 +123,33 @@ def prism_metacognition(llm) -> float:
     while computing and reporting all six task scores.
     """
     # Run the full pipeline (D1 -> D2 -> D3 for all problems)
-    # Uses caching to avoid redundant LLM calls on re-runs
+    # Cache covers both the pipeline run AND all task score computations
+    # (including judge LLM calls in Task 4) to avoid redundant API calls.
     with kbench.client.enable_cache():
         pipeline.run_all(llm, kbench)
 
-    # --- Compute all six task scores ---
+        # --- Compute all six task scores ---
 
-    # L1 (familiar) scores
-    t1_l1 = compute_task_1(pipeline, novelty_level=1)
-    t2_l1 = compute_task_2(pipeline, novelty_level=1)
-    t3_l1 = compute_task_3(pipeline, novelty_level=1)
-    t4_l1 = compute_task_4(
-        pipeline, kbench, judge_llm=kbench.judge_llm, novelty_level=1
-    )
-    t5_l1 = compute_task_5(pipeline, novelty_level=1)
+        # L1 (familiar) scores
+        t1_l1 = compute_task_1(pipeline, novelty_level=1)
+        t2_l1 = compute_task_2(pipeline, novelty_level=1)
+        t3_l1 = compute_task_3(pipeline, novelty_level=1)
+        t4_l1 = compute_task_4(
+            pipeline, kbench, judge_llm=kbench.judge_llm, novelty_level=1
+        )
+        t5_l1 = compute_task_5(pipeline, novelty_level=1)
 
-    # L2 (novel operator) scores
-    t1_l2 = compute_task_1(pipeline, novelty_level=2)
-    t2_l2 = compute_task_2(pipeline, novelty_level=2)
-    t3_l2 = compute_task_3(pipeline, novelty_level=2)
-    t4_l2 = compute_task_4(
-        pipeline, kbench, judge_llm=kbench.judge_llm, novelty_level=2
-    )
-    t5_l2 = compute_task_5(pipeline, novelty_level=2)
+        # L2 (novel operator) scores
+        t1_l2 = compute_task_1(pipeline, novelty_level=2)
+        t2_l2 = compute_task_2(pipeline, novelty_level=2)
+        t3_l2 = compute_task_3(pipeline, novelty_level=2)
+        t4_l2 = compute_task_4(
+            pipeline, kbench, judge_llm=kbench.judge_llm, novelty_level=2
+        )
+        t5_l2 = compute_task_5(pipeline, novelty_level=2)
 
-    # Cross-level score
-    t6 = compute_task_6(pipeline, kbench, judge_llm=kbench.judge_llm)
+        # Cross-level score (reads cached T4 scores — no extra judge calls)
+        t6 = compute_task_6(pipeline, kbench, judge_llm=kbench.judge_llm)
 
     # --- Report all scores via assertions for leaderboard visibility ---
     kbench.assertions.assert_true(
@@ -178,12 +179,24 @@ def prism_metacognition(llm) -> float:
 
     # Report pipeline summary
     summary = pipeline.summary()
+    cf_parse_rate = pipeline.get_counterfactual_parse_rate()
     kbench.assertions.assert_true(
         True,
         expectation=(
             f"Pipeline: {summary['l1_main_count']} L1 + {summary['l2_main_count']} L2 problems | "
             f"Accuracy L1={summary['l1_overall_accuracy']:.1%} L2={summary['l2_overall_accuracy']:.1%} | "
             f"Parse errors={summary['parse_error_rate']:.1%}"
+        ),
+    )
+
+    # Flag low counterfactual parse rates — if the model rarely produces
+    # COUNTERFACTUAL: responses, sub-score C defaults to 0 and the composite
+    # is unreliable.  This assertion makes the issue visible on the leaderboard.
+    kbench.assertions.assert_true(
+        cf_parse_rate >= 0.5,
+        expectation=(
+            f"Counterfactual parse rate >= 50% (actual: {cf_parse_rate:.0%}). "
+            "Low rates mean sub-score C is unreliable."
         ),
     )
 

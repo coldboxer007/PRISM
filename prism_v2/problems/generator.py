@@ -592,7 +592,22 @@ def generate_type_a_l2(
     difficulty: str = "easy",
     seed: int = 42,
 ) -> Problem:
-    """Generate an L2 Type-A problem: system of equations with Zeta-operators."""
+    """Generate an L2 Type-A problem: system of equations with Zeta-operators.
+
+    Structurally mirrors L1 Type-A (solving for unknowns via elimination)
+    so that the novelty comparison is valid. The model must solve a 3x3
+    system where Zeta-multiplication replaces standard multiplication in
+    the coefficient-variable products.
+
+    Zeta-mul(a, x) = a*x + a + x, so each equation becomes:
+      (a1*x + a1 + x) + (a2*y + a2 + y) + (a3*z + a3 + z) = rhs
+    which simplifies to:
+      (a1+1)*x + (a2+1)*y + (a3+1)*z = rhs - (a1 + a2 + a3)
+
+    We generate the system in terms of the "effective" coefficients and
+    present it to the model using Zeta-mul notation, requiring 5 elimination
+    steps that parallel the L1 Type-A structure.
+    """
     rng = random.Random(seed)
 
     ranges = {
@@ -602,45 +617,94 @@ def generate_type_a_l2(
     }
     coeff_range, sol_range = ranges[difficulty]
 
-    # Generate 3 equations with Zeta-operators
-    # a (+) bx = c  means a + b*x + 1
-    # We define: a (coeff) x means zeta-mul(a, x) = a*x + a + x
-    # So equation: zeta_mul(a1, x) (+) zeta_mul(a2, y) = rhs
-    # This gets complex; let's simplify to a direct computation problem
+    # Generate "Zeta coefficients" a_ij for the system
+    # The actual equation is: zeta_mul(a_i1, x) + zeta_mul(a_i2, y) + zeta_mul(a_i3, z) = rhs_i
+    # Which expands to: (a_i1+1)*x + (a_i2+1)*y + (a_i3+1)*z + (a_i1+a_i2+a_i3) = rhs_i
+    # So the "effective" standard system is A_eff * [x,y,z]^T = b_eff
+    # where A_eff[i][j] = a_ij + 1, b_eff[i] = rhs_i - sum(a_ij)
 
-    vals = [rng.randint(*sol_range) for _ in range(3)]
-    # Ensure non-zero
-    vals = [v if v != 0 else 1 for v in vals]
-    x, y, z = vals
+    # We work backwards: pick solution and Zeta coefficients, compute RHS
+    while True:
+        A_zeta = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(3)]
+        # Effective coefficients: a_ij + 1
+        A_eff = [[A_zeta[i][j] + 1 for j in range(3)] for i in range(3)]
+        # Ensure A_eff[0][0] != 0 for elimination
+        if A_eff[0][0] == 0:
+            continue
+        det = (
+            A_eff[0][0] * (A_eff[1][1] * A_eff[2][2] - A_eff[1][2] * A_eff[2][1])
+            - A_eff[0][1] * (A_eff[1][0] * A_eff[2][2] - A_eff[1][2] * A_eff[2][0])
+            + A_eff[0][2] * (A_eff[1][0] * A_eff[2][1] - A_eff[1][1] * A_eff[2][0])
+        )
+        if det != 0:
+            break
 
-    # Create 5-step computation using Zeta operators
-    # Step 1: zeta_mul(a, x) where a is known
-    a1 = rng.randint(2, 6)
-    s1 = _zeta_mul(a1, x)
-    # Step 2: zeta_add(s1, b) where b involves y
-    s2 = _zeta_add(s1, y)
-    # Step 3: zeta_mul(s2, c)
-    c1 = rng.randint(2, 4)
-    s3 = _zeta_mul(s2, c1)
-    # Step 4: zeta_sub(s3, z)
-    s4 = _zeta_sub(s3, z)
-    # Step 5: zeta_add(s4, final_const)
-    final_const = rng.randint(1, 10)
-    s5 = _zeta_add(s4, final_const)
+    x_true = [rng.randint(*sol_range) for _ in range(3)]
+    # Compute RHS for each equation:
+    # rhs_i = sum(zeta_mul(a_ij, x_j)) for j=0..2
+    rhs = []
+    for i in range(3):
+        row_sum = sum(_zeta_mul(A_zeta[i][j], x_true[j]) for j in range(3))
+        rhs.append(row_sum)
+
+    # Build the 5-step elimination using effective coefficients (same as L1)
+    F = Fraction
+    a00, a01, a02 = [F(c) for c in A_eff[0]]
+    a10, a11, a12 = [F(c) for c in A_eff[1]]
+    a20, a21, a22 = [F(c) for c in A_eff[2]]
+    # Effective RHS: rhs_i - sum(A_zeta[i])
+    b_eff = [rhs[i] - sum(A_zeta[i]) for i in range(3)]
+    b0, b1, b2 = F(b_eff[0]), F(b_eff[1]), F(b_eff[2])
+
+    # Step 1: Multiplier m21 = A_eff[1][0] / A_eff[0][0]
+    m21 = a10 / a00
+    m21_f = float(m21)
+    gt_1 = f"{m21_f:.6g}"
+
+    # Step 2: New RHS of eq2 after eliminating x
+    new_b1 = b1 - m21 * b0
+    gt_2 = f"{float(new_b1):.6g}"
+
+    # Step 3: Eliminate x from eq3
+    m31 = a20 / a00
+    new_b2 = b2 - m31 * b0
+    gt_3 = f"{float(new_b2):.6g}"
+
+    # Step 4: Solve for z
+    gt_4 = str(x_true[2])
+
+    # Step 5: Back-substitute for y
+    gt_5 = str(x_true[1])
+
+    # Format Zeta equations for the problem statement
+    def _fmt_zeta_eq(coeffs, rhs_val):
+        parts = []
+        var_names = ["x", "y", "z"]
+        for j, c in enumerate(coeffs):
+            term = f"{c} (*) {var_names[j]}"
+            if parts:
+                parts.append(f" + {term}")
+            else:
+                parts.append(term)
+        return "".join(parts) + f" = {rhs_val}"
+
+    eq_strs = [_fmt_zeta_eq(A_zeta[i], rhs[i]) for i in range(3)]
 
     statement = (
         f"{OPERATOR_PREAMBLE_ALPHA}"
-        f"Given x = {x}, y = {y}, z = {z}, compute the following chain of\n"
-        f"Zeta-operations step by step:\n\n"
-        f"Step 1: Compute {a1} (*) x using Zeta-multiplication\n"
-        f"Step 2: Compute result_step_1 (+) y using Zeta-addition\n"
-        f"Step 3: Compute result_step_2 (*) {c1} using Zeta-multiplication\n"
-        f"Step 4: Compute result_step_3 (-) z using Zeta-subtraction\n"
-        f"Step 5: Compute result_step_4 (+) {final_const} using Zeta-addition\n\n"
-        f"Remember:\n"
-        f"  a (*) b = a*b + a + b\n"
-        f"  a (+) b = a + b + 1\n"
-        f"  a (-) b = a - b - 1"
+        "Solve the following system of Zeta-equations for x, y, and z.\n"
+        "Each term uses Zeta-multiplication: a (*) v = a*v + a + v.\n"
+        "To solve, first expand each Zeta-product to get a standard linear system,\n"
+        "then apply Gaussian elimination.\n\n"
+        f"Equation 1: {eq_strs[0]}\n"
+        f"Equation 2: {eq_strs[1]}\n"
+        f"Equation 3: {eq_strs[2]}\n\n"
+        "Steps (after expanding to standard form):\n"
+        f"Step 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = {A_eff[1][0]}/{A_eff[0][0]}\n"
+        "Step 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\n"
+        f"Step 3: Eliminate x from equation 3 (multiplier = {A_eff[2][0]}/{A_eff[0][0]}). State the new RHS.\n"
+        "Step 4: Solve the reduced 2x2 system for z.\n"
+        "Step 5: Back-substitute z to find y."
     )
 
     return Problem(
@@ -651,21 +715,20 @@ def generate_type_a_l2(
         problem_statement=statement,
         num_steps=5,
         step_descriptions=[
-            f"Zeta-mul({a1}, {x}) = {a1}*{x} + {a1} + {x}",
-            f"Zeta-add({s1}, {y}) = {s1} + {y} + 1",
-            f"Zeta-mul({s2}, {c1}) = {s2}*{c1} + {s2} + {c1}",
-            f"Zeta-sub({s3}, {z}) = {s3} - {z} - 1",
-            f"Zeta-add({s4}, {final_const}) = {s4} + {final_const} + 1",
+            f"Compute multiplier m = {A_eff[1][0]}/{A_eff[0][0]}",
+            f"Eliminate x from eq2: new RHS = {float(b1):.6g} - {m21_f:.6g}*{float(b0):.6g}",
+            f"Eliminate x from eq3: new RHS = {float(b2):.6g} - {float(m31):.6g}*{float(b0):.6g}",
+            "Solve reduced 2x2 system for z",
+            "Back-substitute z to find y",
         ],
-        ground_truth_steps=[str(s1), str(s2), str(s3), str(s4), str(s5)],
-        ground_truth_final=str(s5),
+        ground_truth_steps=[gt_1, gt_2, gt_3, gt_4, gt_5],
+        ground_truth_final=f"x = {x_true[0]}, y = {x_true[1]}, z = {x_true[2]}",
         difficulty_metadata={
-            "x": x,
-            "y": y,
-            "z": z,
-            "a1": a1,
-            "c1": c1,
-            "final_const": final_const,
+            "zeta_coefficients": A_zeta,
+            "effective_coefficients": A_eff,
+            "solution": x_true,
+            "rhs": rhs,
+            "determinant": det,
             "operator_set": "alpha",
         },
         operator_preamble=OPERATOR_PREAMBLE_ALPHA,
@@ -707,17 +770,20 @@ def generate_problem_set(
 
     idx = 0
     # Main problems
+    # Use i//3 for difficulty so each "round" of 3 types shares a difficulty,
+    # and successive rounds advance the difficulty. This breaks the coupling
+    # that previously locked Type A = easy, Type B = medium, Type C = hard.
     for i in range(num_main):
         ptype = types[i % len(types)]
-        diff = difficulties[i % len(difficulties)]
+        diff = difficulties[(i // len(types)) % len(difficulties)]
         pid = f"{prefix}_main_{idx:03d}"
         problems.append(generators[ptype](pid, diff, base_seed + idx))
         idx += 1
 
-    # Feedback problems
+    # Feedback problems — same decoupling
     for i in range(num_feedback):
         ptype = types[i % len(types)]
-        diff = difficulties[i % len(difficulties)]
+        diff = difficulties[(i // len(types)) % len(difficulties)]
         pid = f"{prefix}_feedback_{i:03d}"
         problems.append(generators[ptype](pid, diff, base_seed + 1000 + i))
 
@@ -742,6 +808,7 @@ def save_problems(output_dir: str = ".", base_seed: int = 42):
     """Generate all problems and save to JSON files."""
     import os
 
+    os.makedirs(output_dir, exist_ok=True)
     data = generate_all_problems(base_seed)
     l1_path = os.path.join(output_dir, "l1_problems.json")
     l2_path = os.path.join(output_dir, "l2_problems.json")

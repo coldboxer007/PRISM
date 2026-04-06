@@ -1,0 +1,12 @@
+# PRISM v2.1 — Requirements
+#
+# This benchmark has NO external dependencies beyond the Python 3.10+
+# standard library and the Kaggle Benchmarks SDK (kaggle-benchmarks),
+# which is pre-installed in the Kaggle notebook environment.
+#
+# All math, parsing, and statistics are implemented from scratch to
+# ensure the benchmark is self-contained and reproducible without
+# installing additional packages.
+#
+# If running locally for development/testing, install the SDK:
+#   pip install kaggle-benchmarks
