@@ -219,6 +219,83 @@ def validate_parsers():
     results = score_steps(["5", "20", "13"], ["5", "20", "14"])
     check(results == [True, True, False], f"score_steps: {results}")
 
+    # Step alignment: skipped / out-of-order steps
+    from prism_v2.scoring.step_scorer import _split_into_step_blocks
+
+    # Skipped step: model outputs Step 1, Step 3, Step 4 (skips Step 2)
+    skip_text = "Step 1: 2 + 3 = 5\nStep 3: 5 * 4 = 20\nStep 4: 20 - 7 = 13\n"
+    blocks = _split_into_step_blocks(skip_text, 4)
+    check(
+        "5" in blocks[0],
+        f"Skip: block[0] (Step 1) should contain '5', got '{blocks[0]}'",
+    )
+    check(
+        blocks[1] == "", f"Skip: block[1] (Step 2) should be empty, got '{blocks[1]}'"
+    )
+    check(
+        "20" in blocks[2],
+        f"Skip: block[2] (Step 3) should contain '20', got '{blocks[2]}'",
+    )
+    check(
+        "13" in blocks[3],
+        f"Skip: block[3] (Step 4) should contain '13', got '{blocks[3]}'",
+    )
+
+    # Out-of-order steps: model outputs Step 3, Step 1, Step 2
+    ooo_text = "Step 3: third = 30\nStep 1: first = 10\nStep 2: second = 20\n"
+    blocks_ooo = _split_into_step_blocks(ooo_text, 3)
+    check(
+        "10" in blocks_ooo[0],
+        f"OOO: block[0] (Step 1) should contain '10', got '{blocks_ooo[0]}'",
+    )
+    check(
+        "20" in blocks_ooo[1],
+        f"OOO: block[1] (Step 2) should contain '20', got '{blocks_ooo[1]}'",
+    )
+    check(
+        "30" in blocks_ooo[2],
+        f"OOO: block[2] (Step 3) should contain '30', got '{blocks_ooo[2]}'",
+    )
+
+    # Duplicate step (self-correction): later occurrence should overwrite
+    dup_text = "Step 2: first attempt = 99\nStep 2: correction = 42\n"
+    blocks_dup = _split_into_step_blocks(dup_text, 2)
+    check(
+        "42" in blocks_dup[1],
+        f"Dup: block[1] (Step 2) should contain '42' (last), got '{blocks_dup[1]}'",
+    )
+
+    # Out-of-range step numbers should be skipped
+    oor_text = "Step 0: invalid\nStep 1: valid = 10\nStep 99: way out of range\n"
+    blocks_oor = _split_into_step_blocks(oor_text, 3)
+    check(
+        "10" in blocks_oor[0],
+        f"OOR: block[0] (Step 1) should contain '10', got '{blocks_oor[0]}'",
+    )
+    check(
+        blocks_oor[1] == "",
+        f"OOR: block[1] (Step 2) should be empty, got '{blocks_oor[1]}'",
+    )
+    check(
+        blocks_oor[2] == "",
+        f"OOR: block[2] (Step 3) should be empty, got '{blocks_oor[2]}'",
+    )
+
+    # Full pipeline: skipped steps should score correctly
+    skip_solve = "Step 1: 2 + 3 = 5\nStep 3: 10 * 2 = 20\n"
+    skip_answers = extract_step_answers(skip_solve, 3)
+    skip_scores = score_steps(skip_answers, ["5", "15", "20"])
+    check(
+        skip_scores[0] is True, f"Skip pipeline: step 1 correct, got {skip_scores[0]}"
+    )
+    check(
+        skip_scores[1] is False,
+        f"Skip pipeline: step 2 missing -> wrong, got {skip_scores[1]}",
+    )
+    check(
+        skip_scores[2] is True, f"Skip pipeline: step 3 correct, got {skip_scores[2]}"
+    )
+
     print(f"  Parser checks complete")
 
 

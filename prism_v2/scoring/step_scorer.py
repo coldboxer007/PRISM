@@ -44,7 +44,12 @@ def extract_step_answers(response_text: str, num_steps: int) -> list[str]:
 
 
 def _split_into_step_blocks(text: str, num_steps: int) -> list[str]:
-    """Split response text into blocks, one per step."""
+    """Split response text into blocks, one per step.
+
+    Uses the actual step number from 'Step N' headers for alignment,
+    so skipped or out-of-order steps map to the correct index.
+    Duplicate step numbers keep the later occurrence (self-correction).
+    """
     # Find all "Step N" positions
     pattern = r"(?:^|\n)\s*(?:\*\*)?Step\s+(\d+)\s*(?:\*\*)?[:\.]"
     matches = list(re.finditer(pattern, text, re.IGNORECASE))
@@ -52,8 +57,12 @@ def _split_into_step_blocks(text: str, num_steps: int) -> list[str]:
     if not matches:
         return [""] * num_steps
 
-    blocks = []
+    blocks = [""] * num_steps
     for i, m in enumerate(matches):
+        step_num = int(m.group(1))
+        if step_num < 1 or step_num > num_steps:
+            continue  # skip out-of-range step numbers
+
         start = m.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         # Check for FINAL ANSWER section and truncate
@@ -64,11 +73,9 @@ def _split_into_step_blocks(text: str, num_steps: int) -> list[str]:
         )
         if final_marker:
             end = start + final_marker.start()
-        blocks.append(text[start:end])
 
-    # Pad if we found fewer blocks than expected
-    while len(blocks) < num_steps:
-        blocks.append("")
+        # Use step_num for indexing; later duplicates overwrite earlier ones
+        blocks[step_num - 1] = text[start:end]
 
     return blocks
 
