@@ -895,8 +895,25 @@ def validate_json_files():
                 has_zero = any(c == 0 for row in zc for c in row)
                 check(
                     not has_zero,
-                    f"JSON {p['id']} has zero Zeta coefficient (MEDIUM-6 fix needed)",
+                    f"JSON {p['id']} has zero Zeta coefficient",
                 )
+
+    # Verify no zero effective coefficients in L2 Type-A problems
+    from prism_v2.problems.generator import _zeta_mul
+    for p in l2_data:
+        if p["problem_type"] == "A":
+            meta = p.get("difficulty_metadata", {})
+            zc = meta.get("zeta_coefficients")
+            sol = meta.get("solution")
+            if zc and sol:
+                for i in range(3):
+                    for j in range(3):
+                        eff = _zeta_mul(zc[i][j], 1)  # effective coefficient
+                        check(
+                            eff != 0,
+                            f"JSON {p['id']} eq{i+1} var{j+1}: effective coeff is 0 "
+                            f"(zeta={zc[i][j]})",
+                        )
 
     # Verify negative Zeta coefficients are parenthesized in problem statements
     import re

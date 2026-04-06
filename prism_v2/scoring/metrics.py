@@ -280,25 +280,6 @@ def compute_coherence_composite(
 
 
 # ---------------------------------------------------------------------------
-# Task 5: Adaptive Calibration (Confidence Drift)
-# ---------------------------------------------------------------------------
-
-
-def _linear_slope(values: list[float]) -> float:
-    """Compute the slope of a simple linear regression of values vs. index."""
-    n = len(values)
-    if n < 2:
-        return 0.0
-    x_mean = (n - 1) / 2.0
-    y_mean = sum(values) / n
-
-    num = sum((i - x_mean) * (values[i] - y_mean) for i in range(n))
-    den = sum((i - x_mean) ** 2 for i in range(n))
-
-    return num / den if den != 0 else 0.0
-
-
-# ---------------------------------------------------------------------------
 # Task 5: Metacognitive Control (Accept/Decline Utility)
 # ---------------------------------------------------------------------------
 

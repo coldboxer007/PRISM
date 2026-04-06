@@ -4,69 +4,69 @@
     "novelty_level": 2,
     "problem_type": "A",
     "difficulty": "easy",
-    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-2) (*) x + (-1) (*) y + (-2) (*) z = -6\nEquation 2: 3 (*) x + (-3) (*) y + 2 (*) z = 10\nEquation 3: 2 (*) x + (-2) (*) y + (-3) (*) z = -16\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 4/-1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 3/-1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 2 (*) x + 1 (*) y + 2 (*) z = 9\nEquation 2: 2 (*) x + (-2) (*) y + 3 (*) z = 6\nEquation 3: 2 (*) x + (-2) (*) y + (-2) (*) z = -24\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/3\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 3/3). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute multiplier m = 4/-1",
-      "Eliminate x from eq2: new RHS = 8 - -4*-1",
-      "Eliminate x from eq3: new RHS = -13 - -3*-1",
+      "Compute multiplier m = 3/3",
+      "Eliminate x from eq2: new RHS = 3 - 1*4",
+      "Eliminate x from eq3: new RHS = -22 - 1*4",
       "Solve reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
-      "-4",
-      "4",
-      "-16",
-      "4",
-      "-4"
+      "1",
+      "-1",
+      "-26",
+      "5",
+      "2"
     ],
-    "ground_truth_final": "x = -3, y = -4, z = 4",
+    "ground_truth_final": "x = -5, y = 2, z = 5",
     "difficulty_metadata": {
       "zeta_coefficients": [
         [
-          -2,
-          -1,
-          -2
-        ],
-        [
-          3,
-          -3,
+          2,
+          1,
           2
         ],
         [
           2,
           -2,
-          -3
+          3
+        ],
+        [
+          2,
+          -2,
+          -2
         ]
       ],
       "effective_coefficients": [
         [
-          -1,
-          0,
-          -1
-        ],
-        [
-          4,
-          -2,
+          3,
+          2,
           3
         ],
         [
           3,
           -1,
-          -2
+          4
+        ],
+        [
+          3,
+          -1,
+          -1
         ]
       ],
       "solution": [
-        -3,
-        -4,
-        4
+        -5,
+        2,
+        5
       ],
       "rhs": [
-        -6,
-        10,
-        -16
+        9,
+        6,
+        -24
       ],
-      "determinant": -9,
+      "determinant": 45,
       "operator_set": "alpha"
     },
     "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
@@ -632,69 +632,69 @@
     "novelty_level": 2,
     "problem_type": "A",
     "difficulty": "medium",
-    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 1 (*) x + (-1) (*) y + 7 (*) z = -51\nEquation 2: 7 (*) x + (-2) (*) y + (-1) (*) z = 1\nEquation 3: (-4) (*) x + (-5) (*) y + 3 (*) z = -11\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 8/2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -3/2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 2 (*) x + 1 (*) y + (-5) (*) z = -24\nEquation 2: 7 (*) x + (-2) (*) y + 3 (*) z = -80\nEquation 3: 5 (*) x + 3 (*) y + (-3) (*) z = -51\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 8/3\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 6/3). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute multiplier m = 8/2",
-      "Eliminate x from eq2: new RHS = -3 - 4*-58",
-      "Eliminate x from eq3: new RHS = -5 - -1.5*-58",
+      "Compute multiplier m = 8/3",
+      "Eliminate x from eq2: new RHS = -88 - 2.66667*-22",
+      "Eliminate x from eq3: new RHS = -56 - 2*-22",
       "Solve reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
-      "4",
-      "229",
-      "-92",
-      "-7",
-      "-5"
+      "2.66667",
+      "-29.3333",
+      "-12",
+      "-2",
+      "0"
     ],
-    "ground_truth_final": "x = -1, y = -5, z = -7",
+    "ground_truth_final": "x = -10, y = 0, z = -2",
     "difficulty_metadata": {
       "zeta_coefficients": [
         [
+          2,
           1,
-          -1,
-          7
+          -5
         ],
         [
           7,
           -2,
-          -1
+          3
         ],
         [
-          -4,
-          -5,
-          3
+          5,
+          3,
+          -3
         ]
       ],
       "effective_coefficients": [
         [
+          3,
           2,
-          0,
-          8
+          -4
         ],
         [
           8,
           -1,
-          0
+          4
         ],
         [
-          -3,
-          -4,
-          4
+          6,
+          4,
+          -2
         ]
       ],
       "solution": [
-        -1,
-        -5,
-        -7
+        -10,
+        0,
+        -2
       ],
       "rhs": [
-        -51,
-        1,
-        -11
+        -24,
+        -80,
+        -51
       ],
-      "determinant": -288,
+      "determinant": -114,
       "operator_set": "alpha"
     },
     "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
@@ -736,69 +736,69 @@
     "novelty_level": 2,
     "problem_type": "A",
     "difficulty": "easy",
-    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 3 (*) x + (-2) (*) y + (-1) (*) z = 5\nEquation 2: 3 (*) x + 2 (*) y + (-1) (*) z = 5\nEquation 3: (-2) (*) x + 1 (*) y + 1 (*) z = -1\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 4/4\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/4). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-3) (*) x + (-3) (*) y + (-2) (*) z = -12\nEquation 2: 2 (*) x + 1 (*) y + 2 (*) z = 9\nEquation 3: (-3) (*) x + (-2) (*) y + 2 (*) z = -16\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/-2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -2/-2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
     "step_descriptions": [
-      "Compute multiplier m = 4/4",
-      "Eliminate x from eq2: new RHS = 1 - 1*5",
-      "Eliminate x from eq3: new RHS = -1 - -0.25*5",
+      "Compute multiplier m = 3/-2",
+      "Eliminate x from eq2: new RHS = 4 - -1.5*-4",
+      "Eliminate x from eq3: new RHS = -13 - 1*-4",
       "Solve reduced 2x2 system for z",
       "Back-substitute z to find y"
     ],
     "ground_truth_steps": [
-      "1",
-      "-4",
-      "0.25",
-      "1",
+      "-1.5",
+      "-2",
+      "-9",
+      "-2",
       "-1"
     ],
-    "ground_truth_final": "x = 1, y = -1, z = 1",
+    "ground_truth_final": "x = 4, y = -1, z = -2",
     "difficulty_metadata": {
       "zeta_coefficients": [
         [
-          3,
-          -2,
-          -1
+          -3,
+          -3,
+          -2
         ],
         [
-          3,
           2,
-          -1
+          1,
+          2
         ],
         [
+          -3,
           -2,
-          1,
-          1
+          2
         ]
       ],
       "effective_coefficients": [
         [
-          4,
-          -1,
-          0
+          -2,
+          -2,
+          -1
         ],
         [
-          4,
           3,
-          0
+          2,
+          3
         ],
         [
+          -2,
           -1,
-          2,
-          2
+          3
         ]
       ],
       "solution": [
-        1,
+        4,
         -1,
-        1
+        -2
       ],
       "rhs": [
-        5,
-        5,
-        -1
+        -12,
+        9,
+        -16
       ],
-      "determinant": 32,
+      "determinant": 11,
       "operator_set": "alpha"
     },
     "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n",

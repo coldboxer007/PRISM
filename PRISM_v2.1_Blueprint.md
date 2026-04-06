@@ -167,17 +167,17 @@ We need a dataset of problems. The approach:
 
 3. **Generate L2 problems** from the same generator by swapping in novel operator definitions. The structural skeleton is identical — only the operator semantics change.
 
-4. **Verify all problems** by running through a symbolic solver (SymPy) to confirm every intermediate step has a unique correct answer.
+4. **Verify all problems** by running through stdlib arithmetic (`int`, `float`, `pow`) to confirm every intermediate step has a unique correct answer.
 
 #### 4.3 Problem Count
 
 Given quota constraints ($50/day, $500/month), we need to be efficient:
 
-- Each problem requires 3 API calls minimum (prospective, solve, retrospective)
-- Feedback rounds add 2 more calls each (solve + updated confidence)
-- Target: **10 problems per novelty level** for the non-feedback tasks
-- Target: **5 problems per novelty level** for the feedback task (5 rounds each)
-- Total per model: approximately 10×3 + 10×3 + 5×5×2 = 110 API calls
+- Each main problem requires 3 API calls (prospective, solve, retrospective)
+- Each decision problem requires 1 API call (combined decision + solve)
+- Target: **10 main problems per novelty level** (Tasks 1-4, 6)
+- Target: **5 decision problems per novelty level** (Task 5)
+- Total per model: 10×3×2 + 5×1×2 = **70 API calls**
 
 This is feasible within daily quota if we batch efficiently.
 
@@ -335,30 +335,33 @@ Now reflect on your performance:
 - Per-step assessment: match `Step \d+:\s*(confident and correct|confident but wrong|uncertain and correct|uncertain and wrong)`
 - Counterfactual: extract full text after "COUNTERFACTUAL:" — this doesn't need structured parsing since it's judged by LLM-as-judge
 
-### 5.5 Feedback Round Prompt (Used in Rounds 2-5)
+### 5.5 Decision Problem Prompt (Task 5: Metacognitive Control)
 
-After rounds 1 through 4, the model receives step-level feedback and a new problem:
+For each decision problem the model receives the problem statement, explicit payoff structure, and instructions to first decide ACCEPT or DECLINE, then attempt the problem regardless:
 
 ```
-In the previous problem, your per-step results were:
-Step 1: [CORRECT/INCORRECT] — you predicted [confidence label]
-Step 2: [CORRECT/INCORRECT] — you predicted [confidence label]
-... etc.
+You are given a mathematical problem with an explicit payoff structure.
 
-Here is a new problem of similar type:
-[NEW PROBLEM STATEMENT]
+PAYOFF STRUCTURE:
+- If you ACCEPT and answer correctly: +X points
+- If you ACCEPT and answer incorrectly: -Y points
+- If you DECLINE: +Z points
 
-Given what you learned from the previous problem, provide your 
-updated prospective assessment:
+IMPORTANT: Some problems may be unsolvable (contradictory or missing information).
+If you believe a problem is unsolvable, DECLINE is the safe choice.
 
-1. WEAKEST STEP: Which step will be hardest? (number only)
-2. PER-STEP CONFIDENCE: [same format as D1]
-3. OVERALL BET: [same format as D1]
+INSTRUCTIONS:
+1. DECISION: State ACCEPT or DECLINE
+2. CONFIDENCE: Your confidence in solving correctly (0-100%)
+3. REASONING: Brief explanation of your decision
 
-Then solve the problem showing your work for each step.
+Regardless of your decision, please attempt to solve the problem below,
+showing your work step by step.
+
+[PROBLEM STATEMENT]
 ```
 
-**Note:** In the feedback rounds, we combine the prospective report and solving into a single API call to save quota. We lose the clean separation but gain 50% reduction in API calls.
+**Design note:** The model always attempts to solve (regardless of decision) so we can evaluate correctness and compute the oracle's optimal strategy. The payoff profiles vary across problems: low-risk (small penalty), medium-risk, and high-risk (large penalty). Two of the five problems per level are unsolvable (contradictory system, missing information).
 
 ---
 
@@ -545,7 +548,7 @@ This is the exact sequence of operations for a single problem:
 12. Store all data in a results dictionary for this problem
 ```
 
-For feedback rounds, steps 4-8 are combined into a single prompt, and step 9-11 are skipped (we only track confidence updates and solving accuracy).
+For decision problems (Task 5), steps 4-12 are replaced by a single combined decision + solve prompt. The model's ACCEPT/DECLINE choice and attempted solution are parsed from one response.
 
 ### 7.3 Data Structures
 
@@ -587,15 +590,19 @@ For feedback rounds, steps 4-8 are combined into a single prompt, and step 9-11 
 }
 ```
 
-**Feedback round record:**
+**Decision result record:**
 ```
 {
-  "problem_id": "l1_feedback_round_3",
-  "round_number": 3,
-  "d1_confidence_vector": [4, 4, 2, 3, 4],
-  "d1_bet_correct": 0.60,
-  "d2_step_correct": [1, 1, 0, 1, 1],
-  "d2_overall_correct": 0
+  "problem_id": "l1_decision_001",
+  "decision": "accept",
+  "confidence": 85,
+  "reasoning": "This is a standard system of equations.",
+  "is_solvable": true,
+  "model_correct": true,
+  "payoff_correct": 10,
+  "payoff_wrong": -5,
+  "payoff_decline": 2,
+  "utility_earned": 10
 }
 ```
 
@@ -746,7 +753,7 @@ With 10 problems per novelty level per task, our statistical power is limited. H
 
 **Coherence (Task 4):** Location consistency is binary per problem, so 10 problems give us a proportion ± ~15% (binomial SE). Confidence consistency follows the same logic as Task 2.
 
-**Drift (Task 5):** 5 rounds × 5 steps = 25 observations for the cross-round analysis. The Pearson r between 5-element vectors (one per step) has very low power. This is our weakest metric statistically.
+**Metacognitive Control (Task 5):** 5 decision problems per novelty level. The utility-based scoring normalizes the model's total payoff to [0, 1] relative to worst and optimal (oracle) strategies. With only 5 decisions the score is coarse-grained (each decision shifts the score by ~0.1-0.3 depending on payoff magnitudes), but the accept/decline binary is robust to parse noise.
 
 ### 9.2 Reporting
 
@@ -761,7 +768,7 @@ For each score, report:
 Based on the literature:
 - **AUROC:** Frontier models typically show AUROC of 0.6-0.75 for verbalized confidence (Cacioli 2026). We expect similar.
 - **Coherence:** This is genuinely unknown — no prior work measures prospective-retrospective coherence. Our hypotheses suggest it will be low (0.3-0.5 range).
-- **Drift:** Ackerman et al. (2025) found limited metacognitive learning in LLMs. We expect near-zero drift scores.
+- **Metacognitive Control:** We expect models to show reasonable accept/decline discrimination on L1 problems (utility ratio 0.5-0.8) but degraded performance on L2 (novel operators), especially for hard/high-risk problems and unsolvable problems.
 
 ---
 
@@ -785,14 +792,14 @@ Based on the literature:
 
 **What would falsify it:** No significant difference between model types.
 
-### Hypothesis 3: Maladaptive Drift in Reasoning Models
-**Claim:** Reasoning models will show near-zero or negative Confidence Drift on L2 (novel) problems.
+### Hypothesis 3: Reasoning Models Show Better Accept/Decline Calibration
+**Claim:** Reasoning models will show higher metacognitive control scores (Task 5) than standard models, particularly on hard and unsolvable problems.
 
-**Rationale:** When told a step was wrong, chain-of-thought generates rationalizations ("next time I'll be more careful with Step 3") that increase confidence without improving ability. The rationalization IS the chain-of-thought — it can't help but generate plausible-sounding explanations for why the next attempt will succeed.
+**Rationale:** Chain-of-thought reasoning externalizes the problem-solving process, which may give the model better access to genuine uncertainty signals. A model that can "see" itself struggling during reasoning should produce more accurate accept/decline decisions than one that compresses reasoning into a single forward pass.
 
-**What would confirm it:** Drift score ≤ 0 for reasoning models on L2, while standard models show drift ≥ 0.
+**What would confirm it:** Reasoning model T5 utility ratio > 0.7, while standard model T5 < 0.6, with the gap widening on high-risk and unsolvable problems.
 
-**What would falsify it:** Reasoning models show positive, adaptive drift on novel tasks.
+**What would falsify it:** No significant difference between model types, or standard models outperform reasoning models on accept/decline decisions.
 
 ### Hypothesis 4: Dissociated Coherence Sub-Scores
 **Claim:** Models will show high location consistency but low confidence consistency.
@@ -814,7 +821,7 @@ The Kaggle writeup must follow their template. Here is the planned content alloc
 | Project Name + Team | 20 | PRISM v2.1: Prospective-Retrospective Introspective Self-Model |
 | Problem Statement | 200 | What's missing from current metacognition benchmarks. Why coherence matters. |
 | Task & Benchmark Construction | 400 | The three-dimension architecture. Six tasks. How they map to cognitive science. |
-| Dataset | 150 | Problem generation. L1/L2 design. Verification via symbolic solver. |
+| Dataset | 150 | Problem generation. L1/L2 design. Verification via stdlib math. |
 | Technical Details | 300 | Scoring math. AUROC, Spearman, coherence composite. Statistical considerations. |
 | Results, Insights, Conclusions | 350 | Model comparison. Hypothesis results. What this reveals about LLM metacognition. |
 | References & Citations | 80 | Key papers (8-10 citations) |
@@ -854,8 +861,8 @@ Key rhetorical moves for the writeup:
 | All problems too easy (all correct) | Medium | AUROC/Spearman undefined | Include medium/hard difficulty problems, test in advance |
 | All problems too hard (all incorrect) | Low | Same issue | Difficulty calibration with test runs |
 | Quota exhaustion before completion | Medium | Incomplete results | Progressive reduction plan, prioritize core tasks |
-| LLM-as-judge unreliable for counterfactuals | Medium | Coherence sub-score C noisy | Weight it at only 0.3, report raw scores alongside composite |
-| Feedback rounds show no signal | High | Task 5 uninformative | Report null result honestly, reframe as "models don't learn from metacognitive feedback" |
+| LLM-as-judge unreliable for counterfactuals | Medium | Coherence sub-score C noisy | Weight it at only 0.20, report raw scores alongside composite |
+| Accept/decline decisions are trivial | Medium | Task 5 uninformative | Mix of risk profiles + unsolvable problems ensures non-trivial decisions |
 | Novelty problems are too different | Medium | L2 performance drops for wrong reasons | Verify L2 problems match L1 structural difficulty exactly |
 | Writeup exceeds 1,500 words | High | Possible penalty | Ruthless editing pass, cut Technical Details if needed |
 
@@ -868,7 +875,7 @@ These decisions should be finalized during implementation:
 
 1. **Step count per problem:** Currently set at 5. Could increase to 6-7 for better Spearman power, but longer problems increase API cost and parsing complexity.
 
-2. **Number of feedback rounds:** Currently 5. Could reduce to 3 if quota is tight. 3 rounds still give a meaningful drift signal.
+2. **Number of decision problems per level:** Currently 5 (3 solvable + 2 unsolvable). Could increase for finer-grained utility scoring, but 5 is sufficient for a coarse signal while keeping API costs low.
 
 3. **Counterfactual scoring weight:** Reduced to 0.20 in the coherence composite (from original 0.3), with location consistency at 0.35 and confidence consistency at 0.45. This reflects that LLM-as-judge scoring is noisier than the deterministic sub-scores.
 
