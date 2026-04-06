@@ -8,6 +8,11 @@ Problem Types:
   A - Systems of Linear Equations (3 variables, 5 steps)
   B - Multi-Step Word Problems (5 steps)
   C - Modular Arithmetic / Number Theory (5 steps)
+
+Decision Problems (for Task 5 — Metacognitive Control):
+  Solvable   — reuses Types A/B/C at varying difficulties
+  Unsolvable — contradictory systems (Type A structure) and
+               missing-info word problems (Type B structure)
 """
 
 import json
@@ -736,6 +741,390 @@ def generate_type_a_l2(
 
 
 # ---------------------------------------------------------------------------
+# Decision problems for Task 5 (Metacognitive Control)
+# ---------------------------------------------------------------------------
+
+PAYOFF_PROFILES = {
+    "low": {"payoff_correct": 5, "payoff_wrong": -3, "payoff_decline": 1},
+    "medium": {"payoff_correct": 10, "payoff_wrong": -15, "payoff_decline": 2},
+    "high": {"payoff_correct": 20, "payoff_wrong": -30, "payoff_decline": 3},
+}
+
+
+def _generate_contradictory_system_l1(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L1 Type-A problem: contradictory 3x3 system.
+
+    Creates 2 valid equations, then builds eq3 = α*eq1 + β*eq2 with a
+    shifted RHS so the system is inconsistent. Looks identical to a
+    solvable Type-A problem.
+    """
+    rng = random.Random(seed)
+
+    coeff_range = (-5, 5)
+    while True:
+        A = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(2)]
+        # eq3 = α*eq1 + β*eq2, so it's linearly dependent
+        alpha = rng.choice([-2, -1, 1, 2])
+        beta = rng.choice([-2, -1, 1, 2])
+        row3 = [alpha * A[0][j] + beta * A[1][j] for j in range(3)]
+        # Need A[0][0] != 0 for the prompt framing
+        if A[0][0] == 0:
+            continue
+        # Need row3 to have at least one non-zero coefficient
+        if all(c == 0 for c in row3):
+            continue
+        break
+
+    # Pick arbitrary solution to compute b1, b2
+    x_arb = [rng.randint(-5, 5) for _ in range(3)]
+    b = [sum(A[i][j] * x_arb[j] for j in range(3)) for i in range(2)]
+
+    # Consistent RHS for eq3 would be α*b[0] + β*b[1]; shift it
+    consistent_b3 = alpha * b[0] + beta * b[1]
+    shift = rng.choice([-3, -2, -1, 1, 2, 3])
+    b3 = consistent_b3 + shift
+
+    A_full = A + [row3]
+    b_full = b + [b3]
+
+    eqs = [_format_equation(A_full[i], b_full[i]) for i in range(3)]
+    statement = (
+        "Solve the following system of linear equations for x, y, and z "
+        "using Gaussian elimination.\n"
+        "Show your work for each step.\n\n"
+        f"Equation 1: {eqs[0]}\n"
+        f"Equation 2: {eqs[1]}\n"
+        f"Equation 3: {eqs[2]}\n\n"
+        "Steps:\n"
+        f"Step 1: Compute the multiplier m = A[1][0]/A[0][0] = {A_full[1][0]}/{A_full[0][0]}\n"
+        "Step 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\n"
+        f"Step 3: Eliminate x from equation 3 (multiplier = {A_full[2][0]}/{A_full[0][0]}). State the new RHS.\n"
+        "Step 4: Solve the reduced 2x2 system for z.\n"
+        "Step 5: Back-substitute z to find y."
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 1,
+        "problem_type": "A",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            f"Compute multiplier m = {A_full[1][0]}/{A_full[0][0]}",
+            "Eliminate x from eq2",
+            "Eliminate x from eq3",
+            "Solve reduced system for z",
+            "Back-substitute for y",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "contradictory_system",
+        "difficulty_metadata": {
+            "shift": shift,
+            "alpha": alpha,
+            "beta": beta,
+        },
+        "operator_preamble": None,
+    }
+
+
+def _generate_contradictory_system_l2(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L2 Type-A problem: contradictory Zeta-system.
+
+    Same structure as L1 contradictory system but presented using
+    Zeta-multiplication notation, matching solvable L2 Type-A format.
+    """
+    rng = random.Random(seed)
+
+    coeff_range = (-4, 4)
+    while True:
+        A_zeta = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(2)]
+        A_eff = [[A_zeta[i][j] + 1 for j in range(3)] for i in range(2)]
+        alpha = rng.choice([-2, -1, 1, 2])
+        beta = rng.choice([-2, -1, 1, 2])
+        row3_eff = [alpha * A_eff[0][j] + beta * A_eff[1][j] for j in range(3)]
+        # Reverse the +1 to get Zeta coefficients for row3
+        row3_zeta = [row3_eff[j] - 1 for j in range(3)]
+        if A_eff[0][0] == 0:
+            continue
+        if all(c == 0 for c in row3_eff):
+            continue
+        break
+
+    x_arb = [rng.randint(-4, 4) for _ in range(3)]
+    # Compute RHS using Zeta-multiplication for rows 0 and 1
+    rhs = []
+    for i in range(2):
+        row_sum = sum(_zeta_mul(A_zeta[i][j], x_arb[j]) for j in range(3))
+        rhs.append(row_sum)
+
+    # For the effective system, b_eff[i] = rhs[i] - sum(A_zeta[i])
+    b_eff = [rhs[i] - sum(A_zeta[i]) for i in range(2)]
+    consistent_b3_eff = alpha * b_eff[0] + beta * b_eff[1]
+    shift = rng.choice([-3, -2, -1, 1, 2, 3])
+    b3_eff = consistent_b3_eff + shift
+    # Reverse to get Zeta RHS: rhs3 = b3_eff + sum(row3_zeta)
+    rhs3 = b3_eff + sum(row3_zeta)
+
+    A_zeta_full = A_zeta + [row3_zeta]
+    rhs_full = rhs + [rhs3]
+
+    def _fmt_zeta_eq(coeffs, rhs_val):
+        parts = []
+        var_names = ["x", "y", "z"]
+        for j, c in enumerate(coeffs):
+            term = f"{c} (*) {var_names[j]}"
+            if parts:
+                parts.append(f" + {term}")
+            else:
+                parts.append(term)
+        return "".join(parts) + f" = {rhs_val}"
+
+    eq_strs = [_fmt_zeta_eq(A_zeta_full[i], rhs_full[i]) for i in range(3)]
+
+    A_eff_full = A_eff + [row3_eff]
+    statement = (
+        f"{OPERATOR_PREAMBLE_ALPHA}"
+        "Solve the following system of Zeta-equations for x, y, and z.\n"
+        "Each term uses Zeta-multiplication: a (*) v = a*v + a + v.\n"
+        "To solve, first expand each Zeta-product to get a standard linear system,\n"
+        "then apply Gaussian elimination.\n\n"
+        f"Equation 1: {eq_strs[0]}\n"
+        f"Equation 2: {eq_strs[1]}\n"
+        f"Equation 3: {eq_strs[2]}\n\n"
+        "Steps (after expanding to standard form):\n"
+        f"Step 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = {A_eff_full[1][0]}/{A_eff_full[0][0]}\n"
+        "Step 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\n"
+        f"Step 3: Eliminate x from equation 3 (multiplier = {A_eff_full[2][0]}/{A_eff_full[0][0]}). State the new RHS.\n"
+        "Step 4: Solve the reduced 2x2 system for z.\n"
+        "Step 5: Back-substitute z to find y."
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 2,
+        "problem_type": "A",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            f"Compute multiplier m = {A_eff_full[1][0]}/{A_eff_full[0][0]}",
+            "Eliminate x from eq2",
+            "Eliminate x from eq3",
+            "Solve reduced system for z",
+            "Back-substitute for y",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "contradictory_system",
+        "difficulty_metadata": {
+            "shift": shift,
+            "alpha": alpha,
+            "beta": beta,
+            "operator_set": "alpha",
+        },
+        "operator_preamble": OPERATOR_PREAMBLE_ALPHA,
+    }
+
+
+def _generate_missing_info_l1(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L1 Type-B problem: missing information.
+
+    A word problem that omits the quantity of items. Reads naturally
+    but cannot be solved numerically.
+    """
+    rng = random.Random(seed)
+
+    price = rng.randint(8, 50)
+    tax_pct = rng.choice([5, 8, 10, 12])
+    discount_pct = rng.choice([10, 15, 20, 25])
+    shipping = rng.randint(5, 20)
+
+    # NOTE: quantity is deliberately omitted from the problem statement
+    statement = (
+        f"A customer orders several items at ${price} each. "
+        f"They receive a {discount_pct}% discount on the subtotal. "
+        f"A sales tax of {tax_pct}% is applied after the discount. "
+        f"Finally, a flat shipping fee of ${shipping} is added.\n\n"
+        "Calculate each of the following, showing your work step by step:\n"
+        "Step 1: Compute the subtotal (price x quantity)\n"
+        "Step 2: Compute the discount amount and price after discount\n"
+        "Step 3: Compute the tax amount and price after tax\n"
+        "Step 4: Compute the total including shipping\n"
+        "Step 5: Compute the cost per unit (total / quantity)"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 1,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal = price * quantity",
+            "Apply discount to subtotal",
+            "Apply tax after discount",
+            "Add shipping to get total",
+            "Compute per-unit cost",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "missing_quantity",
+        "difficulty_metadata": {
+            "price_per_unit": price,
+            "tax_pct": tax_pct,
+            "discount_pct": discount_pct,
+            "shipping": shipping,
+        },
+        "operator_preamble": None,
+    }
+
+
+def _generate_missing_info_l2(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L2 Type-B problem: missing information with Zeta ops.
+
+    Word problem using Zeta-operators that omits the quantity of items.
+    Mirrors L2 Type-B solvable format.
+    """
+    rng = random.Random(seed)
+
+    price = rng.randint(8, 40)
+    tax_pct = rng.choice([6, 8, 11, 14])
+    discount_flat = rng.randint(10, 40)
+    shipping = rng.randint(5, 20)
+
+    statement = (
+        f"{OPERATOR_PREAMBLE_ALPHA}"
+        f"A customer orders several items at ${price} each.\n"
+        f"Use Zeta-multiplication to compute the subtotal (price (*) quantity).\n"
+        f"Then apply a flat discount of ${discount_flat} using Zeta-subtraction.\n"
+        f"Compute the tax amount as floor(after_discount * {tax_pct} / 100) using standard arithmetic,\n"
+        f"then add it using Zeta-addition.\n"
+        f"Add the shipping fee of ${shipping} using Zeta-addition.\n"
+        f"Finally, compute the per-unit cost (total / quantity, standard division).\n\n"
+        "Calculate each step, showing your work:\n"
+        "Step 1: Compute subtotal using Zeta-multiplication\n"
+        "Step 2: Apply discount using Zeta-subtraction\n"
+        "Step 3: Compute tax and apply using Zeta-addition\n"
+        "Step 4: Add shipping using Zeta-addition\n"
+        "Step 5: Compute per-unit cost (total / quantity)"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 2,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal using Zeta-multiplication",
+            "Apply discount using Zeta-subtraction",
+            "Compute tax and Zeta-add",
+            "Zeta-add shipping",
+            "Per-unit cost (total / quantity)",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "missing_quantity",
+        "difficulty_metadata": {
+            "price_per_unit": price,
+            "tax_pct": tax_pct,
+            "discount_flat": discount_flat,
+            "shipping": shipping,
+            "operator_set": "alpha",
+        },
+        "operator_preamble": OPERATOR_PREAMBLE_ALPHA,
+    }
+
+
+def generate_decision_problems(
+    novelty_level: int = 1,
+    base_seed: int = 42,
+) -> list[dict]:
+    """Generate 5 decision problems for one novelty level.
+
+    Produces:
+      - 3 solvable: Type A (easy/low-risk), Type B (medium/medium-risk),
+        Type C (hard/high-risk)
+      - 2 unsolvable: contradictory system, missing-info word problem
+
+    Each problem dict is augmented with payoff fields and is_solvable flag.
+    """
+    prefix = "l1" if novelty_level == 1 else "l2"
+    problems = []
+
+    # --- 3 solvable problems ---
+    solvable_configs = [
+        ("A", "easy", "low"),
+        ("B", "medium", "medium"),
+        ("C", "hard", "high"),
+    ]
+
+    gen_l1 = {
+        "A": generate_type_a_l1,
+        "B": generate_type_b_l1,
+        "C": generate_type_c_l1,
+    }
+    gen_l2 = {
+        "A": generate_type_a_l2,
+        "B": generate_type_b_l2,
+        "C": generate_type_c_l2,
+    }
+    generators = gen_l1 if novelty_level == 1 else gen_l2
+
+    for i, (ptype, diff, risk) in enumerate(solvable_configs):
+        pid = f"{prefix}_decision_{i:03d}"
+        p = generators[ptype](pid, diff, base_seed + 2000 + i)
+        d = p.to_dict()
+        d["is_solvable"] = True
+        d.update(PAYOFF_PROFILES[risk])
+        problems.append(d)
+
+    # --- 2 unsolvable problems ---
+    if novelty_level == 1:
+        contra = _generate_contradictory_system_l1(
+            f"{prefix}_decision_003", seed=base_seed + 2100
+        )
+        missing = _generate_missing_info_l1(
+            f"{prefix}_decision_004", seed=base_seed + 2101
+        )
+    else:
+        contra = _generate_contradictory_system_l2(
+            f"{prefix}_decision_003", seed=base_seed + 2100
+        )
+        missing = _generate_missing_info_l2(
+            f"{prefix}_decision_004", seed=base_seed + 2101
+        )
+
+    # Unsolvable problems use medium-risk payoff (DECLINE is optimal)
+    contra.update(PAYOFF_PROFILES["medium"])
+    missing.update(PAYOFF_PROFILES["medium"])
+    problems.append(contra)
+    problems.append(missing)
+
+    return problems
+
+
+# ---------------------------------------------------------------------------
 # Problem set generation
 # ---------------------------------------------------------------------------
 
@@ -795,12 +1184,20 @@ def generate_all_problems(
     num_main: int = 10,
     num_feedback: int = 5,
 ) -> dict:
-    """Generate and return both L1 and L2 problem sets as serializable dicts."""
+    """Generate and return both L1 and L2 problem sets as serializable dicts.
+
+    Each level contains main problems, feedback problems, and decision
+    problems (for Task 5 metacognitive control).
+    """
     l1 = generate_problem_set(1, base_seed, num_main, num_feedback)
     l2 = generate_problem_set(2, base_seed + 500, num_main, num_feedback)
+
+    l1_decision = generate_decision_problems(novelty_level=1, base_seed=base_seed)
+    l2_decision = generate_decision_problems(novelty_level=2, base_seed=base_seed + 500)
+
     return {
-        "l1": [p.to_dict() for p in l1],
-        "l2": [p.to_dict() for p in l2],
+        "l1": [p.to_dict() for p in l1] + l1_decision,
+        "l2": [p.to_dict() for p in l2] + l2_decision,
     }
 
 

@@ -6,7 +6,7 @@ Implements:
   Task 2: Spearman rho for step-level prospective accuracy
   Task 3: Retrospective self-assessment accuracy
   Task 4: Prospective-retrospective coherence (composite)
-  Task 5: Adaptive calibration (confidence drift)
+  Task 5: Metacognitive control (accept/decline utility)
   Task 6: Novelty robustness (L2/L1 ratio)
 """
 
@@ -259,7 +259,7 @@ def compute_coherence_composite(
     location_score: float,
     confidence_score: float,
     counterfactual_score: float,
-    weights: tuple[float, float, float] = (0.3, 0.4, 0.3),
+    weights: tuple[float, float, float] = (0.35, 0.45, 0.20),
 ) -> float:
     """Compute the composite coherence score.
 
@@ -267,7 +267,10 @@ def compute_coherence_composite(
         location_score: Sub-score A (location consistency)
         confidence_score: Sub-score B (confidence consistency)
         counterfactual_score: Sub-score C (counterfactual plausibility)
-        weights: (w_A, w_B, w_C) summing to 1.0
+        weights: (w_A, w_B, w_C) summing to 1.0.
+                 Counterfactual is weighted lower (0.20) because fluent
+                 reflective text is not strong evidence of genuine
+                 self-monitoring on its own.
     """
     return (
         weights[0] * location_score
@@ -363,6 +366,95 @@ def compute_adaptive_calibration(
         return 0.0
 
     return max(0.0, r)
+
+
+# ---------------------------------------------------------------------------
+# Task 5: Metacognitive Control (Accept/Decline Utility)
+# ---------------------------------------------------------------------------
+
+
+def compute_metacognitive_control(
+    decisions: list[str],
+    is_solvable: list[bool],
+    model_correct: list[bool],
+    payoff_correct: list[int],
+    payoff_wrong: list[int],
+    payoff_decline: list[int],
+) -> float:
+    """Compute metacognitive control score from accept/decline decisions.
+
+    For each problem the model chose ACCEPT or DECLINE.  We compute:
+      - model_utility:   actual payoff from the model's decisions
+      - worst_utility:   payoff if every decision were maximally bad
+      - optimal_utility: payoff from an oracle with perfect self-knowledge
+
+    Score = (model_utility - worst_utility) / (optimal_utility - worst_utility)
+    Clamped to [0, 1].
+
+    The *optimal* decision for each problem is:
+      - Solvable & oracle-correct: ACCEPT (get payoff_correct)
+      - Solvable & oracle-incorrect: DECLINE or ACCEPT depending on EV,
+        but since the oracle knows it can't solve it, DECLINE
+      - Unsolvable: DECLINE (model_correct is always False for unsolvable)
+
+    The *worst* decision for each problem is:
+      - Solvable & correct:   DECLINE (missed reward)
+      - Solvable & incorrect: ACCEPT  (took penalty)
+      - Unsolvable:           ACCEPT  (took penalty)
+
+    Args:
+        decisions: list of "accept" or "decline" strings
+        is_solvable: whether each problem has a valid solution
+        model_correct: whether the model's attempted answer was correct
+        payoff_correct: reward for correct acceptance per problem
+        payoff_wrong: penalty for wrong acceptance per problem (negative)
+        payoff_decline: safe reward for declining per problem
+
+    Returns:
+        Normalized utility ratio in [0, 1].  Returns 0.5 if optimal == worst.
+    """
+    n = len(decisions)
+    if n == 0:
+        return 0.0
+
+    model_u = 0.0
+    optimal_u = 0.0
+    worst_u = 0.0
+
+    for i in range(n):
+        pc = payoff_correct[i]
+        pw = payoff_wrong[i]
+        pd = payoff_decline[i]
+        correct = model_correct[i]
+
+        # --- Model utility ---
+        if decisions[i] == "accept":
+            model_u += pc if correct else pw
+        else:
+            model_u += pd
+
+        # --- Optimal utility (oracle knows correctness ahead of time) ---
+        if correct:
+            # Oracle would accept and get it right
+            optimal_u += pc
+        else:
+            # Oracle knows it can't solve -> decline
+            optimal_u += pd
+
+        # --- Worst utility ---
+        if correct:
+            # Worst move: decline a problem you'd get right
+            worst_u += pd
+        else:
+            # Worst move: accept a problem you'd get wrong
+            worst_u += pw
+
+    spread = optimal_u - worst_u
+    if spread <= 0:
+        return 0.5  # degenerate: no information
+
+    score = (model_u - worst_u) / spread
+    return max(0.0, min(1.0, score))
 
 
 # ---------------------------------------------------------------------------

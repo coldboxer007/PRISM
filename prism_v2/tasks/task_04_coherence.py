@@ -5,9 +5,11 @@ The most novel score. Measures internal consistency between
 before-task and after-task metacognitive reports.
 
 Three sub-scores:
-  A (0.3): Location consistency — predicted vs reported weakest step
-  B (0.4): Confidence consistency — Spearman rho between D1 confidence and D3 difficulty
-  C (0.3): Counterfactual plausibility — LLM-as-judge assessment
+  A (0.35): Location consistency — predicted vs reported weakest step
+  B (0.45): Confidence consistency — Spearman rho between D1 confidence and D3 difficulty
+  C (0.20): Counterfactual plausibility — LLM-as-judge assessment (demoted weight;
+            fluent reflection is not strong evidence of genuine self-monitoring
+            on its own, so we keep it as a diagnostic bonus rather than an equal pillar)
 
 Score: Weighted composite (0.0 to 1.0)
 """

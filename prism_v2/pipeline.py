@@ -40,6 +40,7 @@ class ProblemResult:
     d2_overall_correct: bool = False
     d2_actual_weakest: Optional[int] = None
     d2_final_answer: str = ""
+    d2_solve_text: str = ""  # full reasoning trace for counterfactual judge
 
     # Dimension 3: Retrospective
     d3_reported_hardest: Optional[int] = None
@@ -64,6 +65,32 @@ class FeedbackRoundResult:
     d2_overall_correct: bool = False
 
 
+@dataclass
+class DecisionResult:
+    """Result for a single metacognitive decision problem (Task 5)."""
+
+    problem_id: str
+    novelty_level: int
+    is_solvable: bool
+
+    # Model's decision
+    decision: str = "accept"  # "accept" or "decline"
+    confidence: int = 50  # 0-100
+    reasoning: str = ""
+
+    # Solve attempt (always attempted regardless of decision)
+    model_correct: bool = False
+    model_answer: str = ""
+
+    # Payoff structure
+    payoff_correct: int = 0
+    payoff_wrong: int = 0
+    payoff_decline: int = 0
+
+    # Parse metadata
+    parse_errors: list[str] = field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Pipeline
 # ---------------------------------------------------------------------------
@@ -84,17 +111,29 @@ class PrismPipeline:
         self.l1_problems = l1_problems
         self.l2_problems = l2_problems
 
-        # Separate main vs feedback problems
-        self.l1_main = [p for p in l1_problems if "feedback" not in p["id"]]
+        # Separate main vs feedback vs decision problems
+        self.l1_main = [
+            p
+            for p in l1_problems
+            if "feedback" not in p["id"] and "decision" not in p["id"]
+        ]
         self.l1_feedback = [p for p in l1_problems if "feedback" in p["id"]]
-        self.l2_main = [p for p in l2_problems if "feedback" not in p["id"]]
+        self.l1_decision = [p for p in l1_problems if "decision" in p["id"]]
+        self.l2_main = [
+            p
+            for p in l2_problems
+            if "feedback" not in p["id"] and "decision" not in p["id"]
+        ]
         self.l2_feedback = [p for p in l2_problems if "feedback" in p["id"]]
+        self.l2_decision = [p for p in l2_problems if "decision" in p["id"]]
 
         # Result caches
         self._l1_results: list[ProblemResult] = []
         self._l2_results: list[ProblemResult] = []
         self._l1_feedback_results: list[FeedbackRoundResult] = []
         self._l2_feedback_results: list[FeedbackRoundResult] = []
+        self._l1_decision_results: list[DecisionResult] = []
+        self._l2_decision_results: list[DecisionResult] = []
         self._has_run = False
 
         # Task score cache — avoids recomputing expensive judge calls.
@@ -156,6 +195,7 @@ class PrismPipeline:
             d2_response = llm.prompt(d2_prompt)
 
             d2_text = str(d2_response)
+            result.d2_solve_text = d2_text  # store full trace for judge
             result.d2_step_answers = extract_step_answers(d2_text, num_steps)
             result.d2_final_answer = extract_final_answer(d2_text)
             result.d2_step_correct = score_steps(result.d2_step_answers, gt_steps)
@@ -269,10 +309,76 @@ class PrismPipeline:
 
         return results
 
+    def run_decision_problem(self, llm, problem: dict, kbench) -> "DecisionResult":
+        """Run a single metacognitive decision problem.
+
+        Uses a single chat turn: the decision prompt asks the model to
+        (1) decide ACCEPT/DECLINE, then (2) attempt the problem regardless.
+        We parse both the decision and the solve attempt.
+        """
+        from prism_v2.prompts.system import SYSTEM_PROMPT
+        from prism_v2.prompts.decision import build_decision_prompt
+        from prism_v2.scoring.decision_scorer import parse_decision_response
+        from prism_v2.scoring.step_scorer import extract_final_answer, compare_answers
+
+        is_solvable = problem.get("is_solvable", True)
+
+        dr = DecisionResult(
+            problem_id=problem["id"],
+            novelty_level=problem["novelty_level"],
+            is_solvable=is_solvable,
+            payoff_correct=problem["payoff_correct"],
+            payoff_wrong=problem["payoff_wrong"],
+            payoff_decline=problem["payoff_decline"],
+        )
+
+        with kbench.chats.new(
+            f"prism_{problem['id']}",
+            system_instructions=SYSTEM_PROMPT,
+        ):
+            prompt = build_decision_prompt(problem)
+            response = llm.prompt(prompt)
+            resp_text = str(response)
+
+        # Parse the decision
+        parsed = parse_decision_response(resp_text)
+        dr.decision = parsed.decision
+        dr.confidence = parsed.confidence
+        dr.reasoning = parsed.reasoning
+        dr.parse_errors = parsed.parse_errors
+
+        # Check correctness of the solve attempt
+        if is_solvable:
+            model_final = extract_final_answer(resp_text)
+            dr.model_answer = model_final
+            gt = problem.get("ground_truth_final", "")
+            dr.model_correct = compare_answers(model_final, gt)
+        else:
+            # Unsolvable problems: model is always wrong
+            dr.model_correct = False
+            dr.model_answer = extract_final_answer(resp_text)
+
+        return dr
+
+    def run_decision_problems(
+        self,
+        llm,
+        decision_problems: list[dict],
+        kbench,
+    ) -> list["DecisionResult"]:
+        """Run all decision problems for one novelty level."""
+        results = []
+        for problem in decision_problems:
+            dr = self.run_decision_problem(llm, problem, kbench)
+            results.append(dr)
+        return results
+
     def run_all(self, llm, kbench):
         """Run the complete pipeline for all problems (both novelty levels).
 
         This is the main entry point. Populates the result caches.
+        Runs main problems (D1→D2→D3) and decision problems (Task 5).
+        Feedback rounds are no longer executed (replaced by decision problems).
         """
         if self._has_run:
             return  # Already ran; use cached results
@@ -287,16 +393,16 @@ class PrismPipeline:
             result = self.run_problem(llm, problem, kbench)
             self._l2_results.append(result)
 
-        # L1 feedback rounds
-        if self.l1_feedback:
-            self._l1_feedback_results = self.run_feedback_rounds(
-                llm, self.l1_feedback, kbench
+        # L1 decision problems (Task 5)
+        if self.l1_decision:
+            self._l1_decision_results = self.run_decision_problems(
+                llm, self.l1_decision, kbench
             )
 
-        # L2 feedback rounds
-        if self.l2_feedback:
-            self._l2_feedback_results = self.run_feedback_rounds(
-                llm, self.l2_feedback, kbench
+        # L2 decision problems (Task 5)
+        if self.l2_decision:
+            self._l2_decision_results = self.run_decision_problems(
+                llm, self.l2_decision, kbench
             )
 
         self._has_run = True
@@ -366,15 +472,41 @@ class PrismPipeline:
                 )
                 for r in results
             ],
-            "solve_responses": [r.d2_final_answer for r in results],
+            "solve_responses": [r.d2_solve_text for r in results],
         }
 
     def get_feedback_data(self, novelty_level: int = 1) -> tuple:
-        """Get data needed for Task 5 (adaptive calibration)."""
+        """Get data needed for Task 5 (adaptive calibration — legacy).
+
+        Retained for backward compatibility but no longer populated by run_all().
+        """
         results = self.get_feedback_results(novelty_level)
         round_confs = [r.d1_confidence_vector for r in results]
         round_corrs = [r.d2_step_correct for r in results]
         return round_confs, round_corrs
+
+    def get_decision_results(self, novelty_level: int = 1) -> list["DecisionResult"]:
+        """Get decision problem results for a novelty level."""
+        return (
+            self._l1_decision_results
+            if novelty_level == 1
+            else self._l2_decision_results
+        )
+
+    def get_decision_data(self, novelty_level: int = 1) -> dict:
+        """Get data needed for Task 5 (metacognitive control).
+
+        Returns dict with parallel lists ready for compute_metacognitive_control().
+        """
+        results = self.get_decision_results(novelty_level)
+        return {
+            "decisions": [r.decision for r in results],
+            "is_solvable": [r.is_solvable for r in results],
+            "model_correct": [r.model_correct for r in results],
+            "payoff_correct": [r.payoff_correct for r in results],
+            "payoff_wrong": [r.payoff_wrong for r in results],
+            "payoff_decline": [r.payoff_decline for r in results],
+        }
 
     def get_parse_error_rate(self) -> float:
         """Compute the overall parse error rate across all results."""
@@ -408,6 +540,8 @@ class PrismPipeline:
             "l2_main_count": len(self._l2_results),
             "l1_feedback_rounds": len(self._l1_feedback_results),
             "l2_feedback_rounds": len(self._l2_feedback_results),
+            "l1_decision_count": len(self._l1_decision_results),
+            "l2_decision_count": len(self._l2_decision_results),
             "parse_error_rate": self.get_parse_error_rate(),
             "l1_overall_accuracy": (
                 sum(1 for r in self._l1_results if r.d2_overall_correct)

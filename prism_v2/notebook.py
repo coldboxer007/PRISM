@@ -15,9 +15,11 @@ across six complementary tasks:
   Task 1: Prospective Calibration (AUROC)
   Task 2: Step-Level Prospective Accuracy (Spearman rho)
   Task 3: Retrospective Self-Assessment Accuracy
-  Task 4: Prospective-Retrospective Coherence (composite)  <-- PRIMARY
-  Task 5: Adaptive Calibration (confidence drift)
+  Task 4: Prospective-Retrospective Coherence (composite)
+  Task 5: Metacognitive Control (accept/decline utility)
   Task 6: Novelty Robustness (L2/L1 ratio)
+
+Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1)
 
 Usage on Kaggle:
   1. Upload the prism_v2/ package as a Kaggle dataset
@@ -89,16 +91,16 @@ def load_problems():
 
 
 l1_problems, l2_problems = load_problems()
-print(
-    f"L1 problems: {len(l1_problems)} "
-    f"(main: {sum(1 for p in l1_problems if 'feedback' not in p['id'])}, "
-    f"feedback: {sum(1 for p in l1_problems if 'feedback' in p['id'])})"
+l1_main = sum(
+    1 for p in l1_problems if "feedback" not in p["id"] and "decision" not in p["id"]
 )
-print(
-    f"L2 problems: {len(l2_problems)} "
-    f"(main: {sum(1 for p in l2_problems if 'feedback' not in p['id'])}, "
-    f"feedback: {sum(1 for p in l2_problems if 'feedback' in p['id'])})"
+l1_dec = sum(1 for p in l1_problems if "decision" in p["id"])
+l2_main = sum(
+    1 for p in l2_problems if "feedback" not in p["id"] and "decision" not in p["id"]
 )
+l2_dec = sum(1 for p in l2_problems if "decision" in p["id"])
+print(f"L1 problems: {len(l1_problems)} (main: {l1_main}, decision: {l1_dec})")
+print(f"L2 problems: {len(l2_problems)} (main: {l2_main}, decision: {l2_dec})")
 
 # ============================================================================
 # CELL 3: Initialize Pipeline
@@ -119,8 +121,7 @@ def prism_metacognition(llm) -> float:
     A metacognition benchmark measuring whether LLMs can accurately
     monitor their own reasoning before, during, and after solving problems.
 
-    Returns the Task 4 (Coherence) score as the primary metric,
-    while computing and reporting all six task scores.
+    Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1)
     """
     # Run the full pipeline (D1 -> D2 -> D3 for all problems)
     # Cache covers both the pipeline run AND all task score computations
@@ -170,7 +171,7 @@ def prism_metacognition(llm) -> float:
     )
     kbench.assertions.assert_true(
         True,
-        expectation=f"T5 Adaptive Calibration: L1={t5_l1:.3f}, L2={t5_l2:.3f}",
+        expectation=f"T5 Metacognitive Control: L1={t5_l1:.3f}, L2={t5_l2:.3f}",
     )
     kbench.assertions.assert_true(
         True,
@@ -184,6 +185,7 @@ def prism_metacognition(llm) -> float:
         True,
         expectation=(
             f"Pipeline: {summary['l1_main_count']} L1 + {summary['l2_main_count']} L2 problems | "
+            f"Decision: {summary['l1_decision_count']} L1 + {summary['l2_decision_count']} L2 | "
             f"Accuracy L1={summary['l1_overall_accuracy']:.1%} L2={summary['l2_overall_accuracy']:.1%} | "
             f"Parse errors={summary['parse_error_rate']:.1%}"
         ),
@@ -200,9 +202,11 @@ def prism_metacognition(llm) -> float:
         ),
     )
 
-    # Return Task 4 (Coherence) as the primary score
-    # This is the most novel and discriminating metric
-    return t4_l1
+    # Primary score: weighted combination of coherence, control, and robustness
+    # 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1.0)
+    t4_mean = (t4_l1 + t4_l2) / 2.0
+    primary = 0.40 * t4_mean + 0.30 * t5_l1 + 0.30 * min(t6, 1.0)
+    return primary
 
 
 # ============================================================================

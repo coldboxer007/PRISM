@@ -287,9 +287,9 @@ def validate_scoring():
     loc = compute_location_consistency([1, 2, 3], [1, 2, 4])
     check(abs(loc - 2 / 3) < 0.01, f"Location consistency: {loc}")
 
-    # Coherence composite
+    # Coherence composite (updated weights: 0.35, 0.45, 0.20)
     composite = compute_coherence_composite(0.8, 0.6, 0.4)
-    expected = 0.3 * 0.8 + 0.4 * 0.6 + 0.3 * 0.4
+    expected = 0.35 * 0.8 + 0.45 * 0.6 + 0.20 * 0.4
     check(abs(composite - expected) < 0.001, f"Composite: {composite}")
 
     # Novelty robustness
@@ -351,7 +351,232 @@ def validate_pipeline_cache():
     )
     check(isinstance(pipeline._task_score_cache, dict), "Cache should be a dict")
 
+    # Decision result caches should exist
+    check(
+        hasattr(pipeline, "_l1_decision_results"),
+        "Pipeline should have _l1_decision_results",
+    )
+    check(
+        hasattr(pipeline, "_l2_decision_results"),
+        "Pipeline should have _l2_decision_results",
+    )
+
     print(f"  Cache checks complete")
+
+
+# ---------------------------------------------------------------------------
+# 6. Decision problem generators
+# ---------------------------------------------------------------------------
+
+
+def validate_decision_generators():
+    print("--- Decision problem generators ---")
+    from prism_v2.problems.generator import (
+        generate_decision_problems,
+        _generate_contradictory_system_l1,
+        _generate_contradictory_system_l2,
+        _generate_missing_info_l1,
+        _generate_missing_info_l2,
+        PAYOFF_PROFILES,
+    )
+
+    # L1 decision problems
+    l1_dec = generate_decision_problems(novelty_level=1, base_seed=42)
+    check(len(l1_dec) == 5, f"L1 should have 5 decision problems, got {len(l1_dec)}")
+
+    # 3 solvable + 2 unsolvable
+    solvable = [p for p in l1_dec if p.get("is_solvable", True)]
+    unsolvable = [p for p in l1_dec if not p.get("is_solvable", True)]
+    check(len(solvable) == 3, f"L1 should have 3 solvable, got {len(solvable)}")
+    check(len(unsolvable) == 2, f"L1 should have 2 unsolvable, got {len(unsolvable)}")
+
+    # All have payoff fields
+    for p in l1_dec:
+        check(
+            "payoff_correct" in p and "payoff_wrong" in p and "payoff_decline" in p,
+            f"Decision problem {p['id']} missing payoff fields",
+        )
+
+    # All have "decision" in their ID
+    for p in l1_dec:
+        check(
+            "decision" in p["id"],
+            f"Decision problem ID should contain 'decision': {p['id']}",
+        )
+
+    # Unsolvable problems should have ground_truth_final == "UNSOLVABLE"
+    for p in unsolvable:
+        check(
+            p["ground_truth_final"] == "UNSOLVABLE",
+            f"Unsolvable {p['id']} should have UNSOLVABLE final answer",
+        )
+
+    # L2 decision problems
+    l2_dec = generate_decision_problems(novelty_level=2, base_seed=42)
+    check(len(l2_dec) == 5, f"L2 should have 5 decision problems, got {len(l2_dec)}")
+    l2_unsolvable = [p for p in l2_dec if not p.get("is_solvable", True)]
+    check(
+        len(l2_unsolvable) == 2,
+        f"L2 should have 2 unsolvable, got {len(l2_unsolvable)}",
+    )
+
+    # Contradictory system L1: verify it's actually contradictory
+    contra = _generate_contradictory_system_l1("test_contra", seed=42)
+    check(not contra["is_solvable"], "Contradictory system should be unsolvable")
+    check(
+        contra["unsolvable_reason"] == "contradictory_system",
+        "Reason should be contradictory_system",
+    )
+
+    # Missing info L1: verify it omits quantity
+    missing = _generate_missing_info_l1("test_missing", seed=42)
+    check(not missing["is_solvable"], "Missing-info should be unsolvable")
+    check(
+        "several items" in missing["problem_statement"],
+        "Missing-info should say 'several items' (no specific quantity)",
+    )
+
+    # Contradictory system L2: should mention Zeta
+    contra_l2 = _generate_contradictory_system_l2("test_contra_l2", seed=42)
+    check(
+        "Zeta" in contra_l2["problem_statement"],
+        "L2 contradictory should mention Zeta operators",
+    )
+
+    # Missing info L2: should mention Zeta
+    missing_l2 = _generate_missing_info_l2("test_missing_l2", seed=42)
+    check(
+        "Zeta" in missing_l2["problem_statement"],
+        "L2 missing-info should mention Zeta operators",
+    )
+
+    # Payoff profiles
+    check("low" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'low'")
+    check("medium" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'medium'")
+    check("high" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'high'")
+
+    print(f"  Decision generator checks complete")
+
+
+# ---------------------------------------------------------------------------
+# 7. Decision scorer (parser)
+# ---------------------------------------------------------------------------
+
+
+def validate_decision_scorer():
+    print("--- Decision scorer ---")
+    from prism_v2.scoring.decision_scorer import parse_decision_response
+
+    # Standard accept response
+    accept_text = (
+        "DECISION: ACCEPT\n"
+        "CONFIDENCE: 85%\n"
+        "REASONING: This is a straightforward system of equations.\n\n"
+        "Step 1: ..."
+    )
+    r = parse_decision_response(accept_text)
+    check(r.decision == "accept", f"Should parse ACCEPT, got {r.decision}")
+    check(r.confidence == 85, f"Should parse 85, got {r.confidence}")
+    check(len(r.reasoning) > 0, "Should parse reasoning")
+    check(len(r.parse_errors) == 0, f"No parse errors expected: {r.parse_errors}")
+
+    # Decline response
+    decline_text = (
+        "DECISION: DECLINE\n"
+        "CONFIDENCE: 20%\n"
+        "REASONING: The problem seems contradictory.\n\n"
+        "Attempting anyway..."
+    )
+    r2 = parse_decision_response(decline_text)
+    check(r2.decision == "decline", f"Should parse DECLINE, got {r2.decision}")
+    check(r2.confidence == 20, f"Should parse 20, got {r2.confidence}")
+
+    # Fallback: no explicit DECISION: label
+    fallback_text = "I will DECLINE this problem because...\nCONFIDENCE: 10%\n"
+    r3 = parse_decision_response(fallback_text)
+    check(
+        r3.decision == "decline", f"Fallback should detect DECLINE, got {r3.decision}"
+    )
+
+    # No decision at all -> default accept
+    empty_text = "Let me try to solve this problem.\nStep 1: ..."
+    r4 = parse_decision_response(empty_text)
+    check(r4.decision == "accept", f"Default should be accept, got {r4.decision}")
+    check(len(r4.parse_errors) > 0, "Missing decision should produce parse error")
+
+    print(f"  Decision scorer checks complete")
+
+
+# ---------------------------------------------------------------------------
+# 8. Metacognitive control metric
+# ---------------------------------------------------------------------------
+
+
+def validate_metacognitive_control():
+    print("--- Metacognitive control metric ---")
+    from prism_v2.scoring.metrics import compute_metacognitive_control
+
+    # Perfect oracle: accept correct, decline incorrect
+    score = compute_metacognitive_control(
+        decisions=["accept", "accept", "decline", "decline"],
+        is_solvable=[True, True, True, False],
+        model_correct=[True, True, False, False],
+        payoff_correct=[5, 10, 20, 10],
+        payoff_wrong=[-3, -15, -30, -15],
+        payoff_decline=[1, 2, 3, 2],
+    )
+    check(
+        abs(score - 1.0) < 0.001,
+        f"Perfect oracle decisions should score 1.0, got {score}",
+    )
+
+    # Worst possible: accept wrong, decline correct
+    score_worst = compute_metacognitive_control(
+        decisions=["decline", "decline", "accept", "accept"],
+        is_solvable=[True, True, True, False],
+        model_correct=[True, True, False, False],
+        payoff_correct=[5, 10, 20, 10],
+        payoff_wrong=[-3, -15, -30, -15],
+        payoff_decline=[1, 2, 3, 2],
+    )
+    check(
+        abs(score_worst - 0.0) < 0.001,
+        f"Worst decisions should score 0.0, got {score_worst}",
+    )
+
+    # All decline: should be between 0 and 1
+    score_decline = compute_metacognitive_control(
+        decisions=["decline", "decline", "decline", "decline"],
+        is_solvable=[True, True, True, False],
+        model_correct=[True, True, False, False],
+        payoff_correct=[5, 10, 20, 10],
+        payoff_wrong=[-3, -15, -30, -15],
+        payoff_decline=[1, 2, 3, 2],
+    )
+    check(
+        0.0 <= score_decline <= 1.0,
+        f"All-decline score should be in [0,1], got {score_decline}",
+    )
+
+    # All accept: depends on correctness mix
+    score_accept = compute_metacognitive_control(
+        decisions=["accept", "accept", "accept", "accept"],
+        is_solvable=[True, True, True, False],
+        model_correct=[True, True, False, False],
+        payoff_correct=[5, 10, 20, 10],
+        payoff_wrong=[-3, -15, -30, -15],
+        payoff_decline=[1, 2, 3, 2],
+    )
+    check(
+        0.0 <= score_accept <= 1.0,
+        f"All-accept score should be in [0,1], got {score_accept}",
+    )
+
+    # Empty: should return 0.0
+    score_empty = compute_metacognitive_control([], [], [], [], [], [])
+    check(score_empty == 0.0, f"Empty should score 0.0, got {score_empty}")
+
+    print(f"  Metacognitive control checks complete")
 
 
 # ---------------------------------------------------------------------------
@@ -370,6 +595,9 @@ def main():
     validate_scoring()
     validate_difficulty_distribution()
     validate_pipeline_cache()
+    validate_decision_generators()
+    validate_decision_scorer()
+    validate_metacognitive_control()
 
     print("=" * 40)
     print(f"Results: {_pass} passed, {_fail} failed")
