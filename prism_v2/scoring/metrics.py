@@ -298,76 +298,6 @@ def _linear_slope(values: list[float]) -> float:
     return num / den if den != 0 else 0.0
 
 
-def compute_pearson_r(x: list[float], y: list[float]) -> Optional[float]:
-    """Compute Pearson correlation coefficient."""
-    n = len(x)
-    if n != len(y) or n < 2:
-        return None
-
-    x_mean = sum(x) / n
-    y_mean = sum(y) / n
-
-    cov = sum((x[i] - x_mean) * (y[i] - y_mean) for i in range(n))
-    var_x = sum((x[i] - x_mean) ** 2 for i in range(n))
-    var_y = sum((y[i] - y_mean) ** 2 for i in range(n))
-
-    if var_x == 0 or var_y == 0:
-        return None
-
-    r = cov / math.sqrt(var_x * var_y)
-    return max(-1.0, min(1.0, r))
-
-
-def compute_adaptive_calibration(
-    round_confidences: list[list[int]],
-    round_correctness: list[list[bool]],
-    num_steps: int = 5,
-) -> float:
-    """Compute adaptive calibration score from feedback rounds.
-
-    Tracks per-step confidence changes and accuracy changes across rounds,
-    then correlates them.
-
-    Args:
-        round_confidences: list of confidence vectors, one per round
-        round_correctness: list of correctness vectors, one per round
-        num_steps: number of steps per problem
-
-    Returns:
-        max(0, Pearson_r) — clamped to 0-1 range.
-    """
-    num_rounds = len(round_confidences)
-    if num_rounds < 2:
-        return 0.0
-
-    # Compute per-step slopes
-    conf_slopes = []
-    acc_slopes = []
-
-    for step in range(num_steps):
-        step_confs = [
-            round_confidences[r][step] if step < len(round_confidences[r]) else 3
-            for r in range(num_rounds)
-        ]
-        step_accs = [
-            float(round_correctness[r][step])
-            if step < len(round_correctness[r])
-            else 0.0
-            for r in range(num_rounds)
-        ]
-
-        conf_slopes.append(_linear_slope(step_confs))
-        acc_slopes.append(_linear_slope(step_accs))
-
-    # Correlate confidence slopes with accuracy slopes
-    r = compute_pearson_r(conf_slopes, acc_slopes)
-
-    if r is None:
-        return 0.0
-
-    return max(0.0, r)
-
-
 # ---------------------------------------------------------------------------
 # Task 5: Metacognitive Control (Accept/Decline Utility)
 # ---------------------------------------------------------------------------
@@ -390,6 +320,18 @@ def compute_metacognitive_control(
 
     Score = (model_utility - worst_utility) / (optimal_utility - worst_utility)
     Clamped to [0, 1].
+
+    Design notes:
+      - The oracle is relative to the model's actual correctness, not just
+        solvability. A model that fails all 3 solvable problems but correctly
+        declines everything would score 1.0. This is defensible: the oracle
+        represents perfect *self-knowledge*, not perfect *problem-solving*.
+        The metric rewards accurate self-assessment, not raw ability.
+      - A "decline everything" strategy scores ~0.54 (not 0.0), partly
+        because the decision prompt warns "Some problems may be unsolvable",
+        which inflates decline rates. This is a deliberate design tradeoff:
+        the warning is necessary so models can discover unsolvable problems,
+        and the 0.46 gap to 1.0 still provides meaningful discrimination.
 
     The *optimal* decision for each problem is:
       - Solvable & oracle-correct: ACCEPT (get payoff_correct)

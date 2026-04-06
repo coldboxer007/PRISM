@@ -53,19 +53,6 @@ class ProblemResult:
 
 
 @dataclass
-class FeedbackRoundResult:
-    """Result for a single feedback round."""
-
-    problem_id: str
-    round_number: int
-    d1_confidence_vector: list[int] = field(default_factory=list)
-    d1_confidence_labels: list[str] = field(default_factory=list)
-    d1_bet_correct: float = 0.5
-    d2_step_correct: list[bool] = field(default_factory=list)
-    d2_overall_correct: bool = False
-
-
-@dataclass
 class DecisionResult:
     """Result for a single metacognitive decision problem (Task 5)."""
 
@@ -111,27 +98,23 @@ class PrismPipeline:
         self.l1_problems = l1_problems
         self.l2_problems = l2_problems
 
-        # Separate main vs feedback vs decision problems
+        # Separate main vs decision problems
         self.l1_main = [
             p
             for p in l1_problems
             if "feedback" not in p["id"] and "decision" not in p["id"]
         ]
-        self.l1_feedback = [p for p in l1_problems if "feedback" in p["id"]]
         self.l1_decision = [p for p in l1_problems if "decision" in p["id"]]
         self.l2_main = [
             p
             for p in l2_problems
             if "feedback" not in p["id"] and "decision" not in p["id"]
         ]
-        self.l2_feedback = [p for p in l2_problems if "feedback" in p["id"]]
         self.l2_decision = [p for p in l2_problems if "decision" in p["id"]]
 
         # Result caches
         self._l1_results: list[ProblemResult] = []
         self._l2_results: list[ProblemResult] = []
-        self._l1_feedback_results: list[FeedbackRoundResult] = []
-        self._l2_feedback_results: list[FeedbackRoundResult] = []
         self._l1_decision_results: list[DecisionResult] = []
         self._l2_decision_results: list[DecisionResult] = []
         self._has_run = False
@@ -221,93 +204,6 @@ class PrismPipeline:
             result.parse_errors.extend(d3_report.parse_errors)
 
         return result
-
-    def run_feedback_rounds(
-        self,
-        llm,
-        feedback_problems: list[dict],
-        kbench,
-        num_rounds: int = 5,
-    ) -> list[FeedbackRoundResult]:
-        """Run feedback rounds for adaptive calibration (Task 5).
-
-        Uses the same conversation across rounds so the model has context.
-        """
-        from prism_v2.prompts.system import SYSTEM_PROMPT
-        from prism_v2.prompts.prospective import build_prospective_prompt
-        from prism_v2.prompts.solve import build_solve_prompt
-        from prism_v2.prompts.feedback import build_feedback_prompt
-        from prism_v2.scoring.confidence_parser import (
-            parse_prospective,
-            parse_feedback_round,
-        )
-        from prism_v2.scoring.step_scorer import (
-            extract_step_answers,
-            extract_final_answer,
-            score_steps,
-        )
-
-        results = []
-        actual_rounds = min(num_rounds, len(feedback_problems))
-
-        with kbench.chats.new("prism_feedback", system_instructions=SYSTEM_PROMPT):
-            prev_step_results = None
-            prev_confidence_labels = None
-
-            for round_num in range(actual_rounds):
-                problem = feedback_problems[round_num]
-                num_steps = problem["num_steps"]
-                gt_steps = problem["ground_truth_steps"]
-
-                rr = FeedbackRoundResult(
-                    problem_id=problem["id"],
-                    round_number=round_num + 1,
-                )
-
-                if round_num == 0:
-                    # First round: standard prospective + solve
-                    d1_prompt = build_prospective_prompt(
-                        problem["problem_statement"], num_steps
-                    )
-                    d1_resp = llm.prompt(d1_prompt)
-                    d1_report = parse_prospective(str(d1_resp), num_steps)
-
-                    rr.d1_confidence_vector = d1_report.confidence_vector
-                    rr.d1_confidence_labels = d1_report.confidence_labels
-                    rr.d1_bet_correct = d1_report.bet_fraction_correct or 0.5
-
-                    solve_resp = llm.prompt(build_solve_prompt())
-                    solve_text = str(solve_resp)
-                    step_answers = extract_step_answers(solve_text, num_steps)
-                    rr.d2_step_correct = score_steps(step_answers, gt_steps)
-                    rr.d2_overall_correct = all(rr.d2_step_correct)
-                else:
-                    # Subsequent rounds: combined feedback + solve
-                    fb_prompt = build_feedback_prompt(
-                        prev_step_results,
-                        prev_confidence_labels,
-                        problem["problem_statement"],
-                        num_steps,
-                    )
-                    fb_resp = llm.prompt(fb_prompt)
-                    fb_text = str(fb_resp)
-
-                    fb_report = parse_feedback_round(fb_text, num_steps)
-                    rr.d1_confidence_vector = fb_report.prospective.confidence_vector
-                    rr.d1_confidence_labels = fb_report.prospective.confidence_labels
-                    rr.d1_bet_correct = (
-                        fb_report.prospective.bet_fraction_correct or 0.5
-                    )
-                    rr.d2_step_correct = score_steps(fb_report.step_answers, gt_steps)
-                    rr.d2_overall_correct = all(rr.d2_step_correct)
-
-                # Store for next round
-                prev_step_results = rr.d2_step_correct
-                prev_confidence_labels = rr.d1_confidence_labels
-
-                results.append(rr)
-
-        return results
 
     def run_decision_problem(self, llm, problem: dict, kbench) -> "DecisionResult":
         """Run a single metacognitive decision problem.
@@ -413,14 +309,6 @@ class PrismPipeline:
         """Get main problem results for a novelty level."""
         return self._l1_results if novelty_level == 1 else self._l2_results
 
-    def get_feedback_results(self, novelty_level: int = 1) -> list[FeedbackRoundResult]:
-        """Get feedback round results for a novelty level."""
-        return (
-            self._l1_feedback_results
-            if novelty_level == 1
-            else self._l2_feedback_results
-        )
-
     def get_bet_fractions_and_outcomes(
         self, novelty_level: int = 1
     ) -> tuple[list[float], list[int]]:
@@ -475,16 +363,6 @@ class PrismPipeline:
             "solve_responses": [r.d2_solve_text for r in results],
         }
 
-    def get_feedback_data(self, novelty_level: int = 1) -> tuple:
-        """Get data needed for Task 5 (adaptive calibration — legacy).
-
-        Retained for backward compatibility but no longer populated by run_all().
-        """
-        results = self.get_feedback_results(novelty_level)
-        round_confs = [r.d1_confidence_vector for r in results]
-        round_corrs = [r.d2_step_correct for r in results]
-        return round_confs, round_corrs
-
     def get_decision_results(self, novelty_level: int = 1) -> list["DecisionResult"]:
         """Get decision problem results for a novelty level."""
         return (
@@ -538,8 +416,6 @@ class PrismPipeline:
         return {
             "l1_main_count": len(self._l1_results),
             "l2_main_count": len(self._l2_results),
-            "l1_feedback_rounds": len(self._l1_feedback_results),
-            "l2_feedback_rounds": len(self._l2_feedback_results),
             "l1_decision_count": len(self._l1_decision_results),
             "l2_decision_count": len(self._l2_decision_results),
             "parse_error_rate": self.get_parse_error_rate(),

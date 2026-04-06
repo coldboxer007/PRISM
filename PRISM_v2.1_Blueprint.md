@@ -80,9 +80,9 @@ Each dimension produces structured data. The gaps between dimensions are the met
 
 The L1-to-L2 slope is the contamination control. If metacognitive ability drops sharply on novel tasks, the model was pattern-matching, not genuinely self-monitoring.
 
-### 3.3 The Five Feedback Rounds
+### 3.3 Metacognitive Control (Decision Problems)
 
-Five rounds per novelty level. After each round, the model receives step-level feedback and must update its confidence profile. This tests metacognitive control — the ability to learn from self-monitoring.
+Five decision problems per novelty level. The model evaluates each problem and decides whether to ACCEPT or DECLINE it, given an explicit payoff structure (+X for correct, -Y for wrong, +Z for decline). Two of the five problems are intentionally unsolvable (contradictory system, missing-info word problem). This tests metacognitive control — the ability to evaluate one's own competence before committing to a task.
 
 ### 3.4 The Six Benchmark Tasks
 
@@ -92,7 +92,7 @@ Each task in the Kaggle Benchmark tests one specific metacognitive ability and r
 2. **Step-Level Prospective Accuracy** (Spearman ρ, confidence vs. correctness)
 3. **Retrospective Self-Assessment Accuracy** (proportion of correct self-assessments)
 4. **Prospective-Retrospective Coherence** (composite consistency score)
-5. **Adaptive Calibration** (confidence drift correlation across feedback rounds)
+5. **Metacognitive Control** (accept/decline utility ratio on decision problems)
 6. **Novelty Robustness** (L2/L1 metacognitive score ratio)
 
 ---
@@ -430,18 +430,18 @@ Then solve the problem showing your work for each step.
 
 This is the most novel score. It has three sub-components:
 
-**Sub-score A — Location Consistency (weight: 0.3):**
+**Sub-score A — Location Consistency (weight: 0.35):**
 - Does D1's predicted-weakest-step match D3's reported-weakest-step?
 - Binary per problem, aggregated as proportion across all problems
 - Value: 0.0 to 1.0
 
-**Sub-score B — Confidence Consistency (weight: 0.4):**
+**Sub-score B — Confidence Consistency (weight: 0.45):**
 - Spearman ρ between D1's per-step confidence vector and D3's per-step difficulty reports
 - D3's self-assessment is mapped to a difficulty scale: "uncertain and wrong" = 4 (hardest), "confident but wrong" = 3, "uncertain and correct" = 2, "confident and correct" = 1 (easiest)
 - Average ρ across problems, then normalize: (ρ + 1) / 2
 - Value: 0.0 to 1.0
 
-**Sub-score C — Counterfactual Plausibility (weight: 0.3):**
+**Sub-score C — Counterfactual Plausibility (weight: 0.20):**
 - Use LLM-as-judge (via kbench.assertions.assess_response_with_judge) to evaluate whether the counterfactual from D3 is plausible
 - Judge criteria:
   1. "The alternative approach described is a mathematically valid method for this type of problem"
@@ -450,31 +450,33 @@ This is the most novel score. It has three sub-components:
 - Score = proportion of criteria passed (0, 0.33, 0.67, or 1.0)
 - Average across all problems
 
-**Composite score:** 0.3 × A + 0.4 × B + 0.3 × C
+**Composite score:** 0.35 × A + 0.45 × B + 0.20 × C
 
 **Score for benchmark:** Composite (0.0 to 1.0)
 
-### 6.5 Task 5: Adaptive Calibration (Confidence Drift)
+### 6.5 Task 5: Metacognitive Control (Accept/Decline Decisions)
 
-**What it measures:** When given step-level feedback, does the model appropriately update its confidence on subsequent problems?
+**What it measures:** Can the model accurately evaluate its own competence and make rational accept/decline decisions given explicit payoff structures?
+
+**Design:**
+- 5 decision problems per novelty level:
+  - 3 solvable: Type A easy/low-risk (+5/-3/+1), Type B medium/medium-risk (+10/-15/+2), Type C hard/high-risk (+20/-30/+3)
+  - 2 unsolvable: contradictory system (Type A), missing-info word problem (Type B)
+- The model must ACCEPT or DECLINE each problem given the payoff structure
+- Regardless of decision, the model always attempts to solve (for calibration)
 
 **Calculation:**
-1. Across 5 feedback rounds, track per-step confidence vectors and per-step correctness
-2. For each step position (1 through N), compute:
-   - `confidence_change`: the slope of confidence across rounds (linear regression of confidence on round number)
-   - `accuracy_change`: the slope of accuracy across rounds (linear regression of correctness on round number)
-3. Compute Pearson r between the N-length vector of confidence_changes and the N-length vector of accuracy_changes
-4. Positive r = the model increases confidence on steps it's getting better at (adaptive)
-5. Negative r = the model increases confidence on steps it's getting worse at (maladaptive/rationalizing)
-6. Zero r = confidence changes are unrelated to accuracy changes (non-adaptive)
+1. For each problem, compute the payoff based on the model's decision and actual correctness:
+   - If ACCEPT: payoff = payoff_correct if correct, payoff_wrong if wrong
+   - If DECLINE: payoff = payoff_decline
+2. Sum all payoffs to get `model_utility`
+3. Compute `optimal_utility`: the utility achieved by a perfect oracle that accepts only solvable problems it would get right, and declines everything else
+4. Compute `worst_utility`: the utility from the worst possible strategy (accept all, get all wrong)
+5. Score = `(model_utility - worst_utility) / (optimal_utility - worst_utility)`, clamped to [0, 1]
 
-**Implementation notes:**
-- With only 5 data points per step per round, individual slopes are noisy
-- The signal comes from the CROSS-STEP correlation, not individual slopes
-- N = 5 steps gives us 5 paired observations for the Pearson r — barely sufficient but meaningful if the effect is large
-- Consider pooling across problems within a round to increase step-level accuracy estimates
+**Baseline note:** A "decline everything" strategy scores approximately 0.54 (not 0.0), because declining avoids the large penalties from wrong answers. This is by design — the 0.46 gap between "decline all" and perfect metacognition provides meaningful discrimination. A model must demonstrate genuine problem-difficulty evaluation to approach 1.0.
 
-**Score for benchmark:** max(0, Pearson_r) — clamped to 0-1 range. A model that shows maladaptive drift (negative r) scores 0. A perfectly adaptive model scores close to 1.
+**Score for benchmark:** Utility ratio (0.0 to 1.0)
 
 ### 6.6 Task 6: Novelty Robustness
 
@@ -868,10 +870,10 @@ These decisions should be finalized during implementation:
 
 2. **Number of feedback rounds:** Currently 5. Could reduce to 3 if quota is tight. 3 rounds still give a meaningful drift signal.
 
-3. **Counterfactual scoring weight:** Currently 0.3 in the coherence composite. Could reduce to 0.2 if LLM-as-judge proves too noisy. Or could drop entirely and redistribute to location and confidence consistency.
+3. **Counterfactual scoring weight:** Reduced to 0.20 in the coherence composite (from original 0.3), with location consistency at 0.35 and confidence consistency at 0.45. This reflects that LLM-as-judge scoring is noisier than the deterministic sub-scores.
 
 4. **Task bundling strategy:** Run all 6 tasks independently (simple but expensive) vs. shared pipeline with caching (complex but efficient). The caching approach saves ~60% API calls but adds implementation complexity.
 
-5. **Which task is the "main" task for the leaderboard:** The SDK requires one main task via `%choose`. The best choice is Task 4 (Coherence) because it's the most novel and discriminating. But Task 1 (AUROC) is the most established metric. Decision: go with Task 4 as main, report all 6 in the writeup.
+5. **Which task is the "main" task for the leaderboard:** The SDK requires one main task via `%choose`. The primary score is a weighted composite: `0.40 × mean(T4_L1, T4_L2) + 0.30 × mean(T5_L1, T5_L2) + 0.30 × min(T6, 1.0)`. This combines coherence (most novel construct), metacognitive control (accept/decline decisions), and novelty robustness.
 
 6. **Structured output vs. free-text parsing:** The SDK supports pydantic models for structured output. If available for all test models, use it — eliminates parsing errors. If not universally available, use free-text with regex parsing.

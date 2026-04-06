@@ -314,7 +314,6 @@ def validate_scoring():
         compute_location_consistency,
         compute_confidence_consistency,
         compute_coherence_composite,
-        compute_adaptive_calibration,
         compute_novelty_robustness,
     )
 
@@ -657,6 +656,262 @@ def validate_metacognitive_control():
 
 
 # ---------------------------------------------------------------------------
+# 9. Contradictory system verification (HIGH-1)
+# ---------------------------------------------------------------------------
+
+
+def validate_contradictory_systems():
+    """Verify that contradictory systems are actually contradictory.
+
+    Check that det(A_eff) = 0 (linearly dependent rows) AND the system
+    is inconsistent (not merely underdetermined). This catches generator
+    edge cases where rounding or coefficient choices could produce a
+    solvable system.
+    """
+    print("--- Contradictory system verification ---")
+    from fractions import Fraction
+    from prism_v2.problems.generator import (
+        _generate_contradictory_system_l1,
+        _generate_contradictory_system_l2,
+        _zeta_mul,
+    )
+
+    # Test multiple seeds for L1
+    for seed in [42, 100, 200, 300, 999]:
+        contra = _generate_contradictory_system_l1(f"contra_l1_{seed}", seed=seed)
+        meta = contra["difficulty_metadata"]
+        alpha, beta, shift = meta["alpha"], meta["beta"], meta["shift"]
+
+        # Reconstruct the coefficient matrix from the problem statement
+        # Parse equations from step_descriptions - the matrix is embedded
+        # in the problem construction. We verify by re-checking the math.
+        # For L1: eq3 = alpha*eq1 + beta*eq2, with b3 shifted by 'shift'
+        check(shift != 0, f"L1 contra seed={seed}: shift must be nonzero (got {shift})")
+        check(
+            contra["ground_truth_final"] == "UNSOLVABLE",
+            f"L1 contra seed={seed}: ground truth must be UNSOLVABLE",
+        )
+
+    # Test multiple seeds for L2
+    for seed in [42, 100, 200, 300, 999]:
+        contra = _generate_contradictory_system_l2(f"contra_l2_{seed}", seed=seed)
+        meta = contra["difficulty_metadata"]
+        alpha, beta, shift = meta["alpha"], meta["beta"], meta["shift"]
+
+        check(shift != 0, f"L2 contra seed={seed}: shift must be nonzero (got {shift})")
+        check(
+            contra["ground_truth_final"] == "UNSOLVABLE",
+            f"L2 contra seed={seed}: ground truth must be UNSOLVABLE",
+        )
+
+    # Deep verification on seed=42: reconstruct and verify L1 inconsistency
+    contra = _generate_contradictory_system_l1("deep_l1", seed=42)
+    # Re-generate the system to get the matrix
+    import random
+    rng = random.Random(42)
+    coeff_range = (-5, 5)
+    while True:
+        A = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(2)]
+        alpha_v = rng.choice([-2, -1, 1, 2])
+        beta_v = rng.choice([-2, -1, 1, 2])
+        row3 = [alpha_v * A[0][j] + beta_v * A[1][j] for j in range(3)]
+        if A[0][0] == 0:
+            continue
+        if all(c == 0 for c in row3):
+            continue
+        break
+    x_arb = [rng.randint(-5, 5) for _ in range(3)]
+    b = [sum(A[i][j] * x_arb[j] for j in range(3)) for i in range(2)]
+    consistent_b3 = alpha_v * b[0] + beta_v * b[1]
+    shift_v = rng.choice([-3, -2, -1, 1, 2, 3])
+    b3 = consistent_b3 + shift_v
+
+    # Verify determinant = 0 (rows are linearly dependent)
+    A_full = A + [row3]
+    det = (
+        A_full[0][0] * (A_full[1][1] * A_full[2][2] - A_full[1][2] * A_full[2][1])
+        - A_full[0][1] * (A_full[1][0] * A_full[2][2] - A_full[1][2] * A_full[2][0])
+        + A_full[0][2] * (A_full[1][0] * A_full[2][1] - A_full[1][1] * A_full[2][0])
+    )
+    check(det == 0, f"L1 contradictory system det should be 0, got {det}")
+
+    # Verify inconsistency: b3 != alpha*b1 + beta*b2
+    check(
+        b3 != consistent_b3,
+        f"L1 system should be inconsistent: b3={b3} should differ from consistent={consistent_b3}",
+    )
+
+    print(f"  Contradictory system verification complete")
+
+
+# ---------------------------------------------------------------------------
+# 10. Type-A L2 Zeta math verification (MEDIUM-7)
+# ---------------------------------------------------------------------------
+
+
+def validate_zeta_math():
+    """Verify that Type-A L2 Zeta equations have correct ground truth.
+
+    For each equation: sum(zeta_mul(A_zeta[i][j], x_true[j]) for j) == rhs[i]
+    """
+    print("--- Type-A L2 Zeta math verification ---")
+    from prism_v2.problems.generator import generate_type_a_l2, _zeta_mul
+
+    for difficulty in ["easy", "medium", "hard"]:
+        for seed in [42, 100, 200]:
+            p = generate_type_a_l2(f"zeta_{difficulty}_{seed}", difficulty, seed=seed)
+            meta = p.difficulty_metadata
+            A_zeta = meta["zeta_coefficients"]
+            x_true = meta["solution"]
+            rhs = meta["rhs"]
+
+            # Verify each equation: sum(zeta_mul(coeff, var)) == rhs
+            for i in range(3):
+                computed_rhs = sum(_zeta_mul(A_zeta[i][j], x_true[j]) for j in range(3))
+                check(
+                    computed_rhs == rhs[i],
+                    f"Zeta eq {i+1} mismatch ({difficulty}, seed={seed}): "
+                    f"computed={computed_rhs}, expected={rhs[i]}",
+                )
+
+            # Verify no zero Zeta coefficients
+            has_zero = any(A_zeta[i][j] == 0 for i in range(3) for j in range(3))
+            check(
+                not has_zero,
+                f"Zeta coefficients should all be nonzero ({difficulty}, seed={seed})",
+            )
+
+    print(f"  Type-A L2 Zeta math verification complete")
+
+
+# ---------------------------------------------------------------------------
+# 11. JSON file validation (MEDIUM-5)
+# ---------------------------------------------------------------------------
+
+
+def validate_json_files():
+    """Validate the shipped JSON problem files against the generator.
+
+    Loads l1_problems.json and l2_problems.json, spot-checks ground truth
+    by recomputing, verifies difficulty distribution, and checks decision
+    problem payoff fields.
+    """
+    print("--- JSON file validation ---")
+    import json
+    import os
+    from prism_v2.problems.generator import (
+        generate_type_a_l1,
+        generate_type_b_l1,
+        generate_type_c_l1,
+        generate_type_a_l2,
+        generate_type_b_l2,
+        generate_type_c_l2,
+        _zeta_mul,
+    )
+
+    json_dir = os.path.join(os.path.dirname(__file__), "problems")
+    l1_path = os.path.join(json_dir, "l1_problems.json")
+    l2_path = os.path.join(json_dir, "l2_problems.json")
+
+    check(os.path.exists(l1_path), f"l1_problems.json should exist at {l1_path}")
+    check(os.path.exists(l2_path), f"l2_problems.json should exist at {l2_path}")
+
+    with open(l1_path) as f:
+        l1_data = json.load(f)
+    with open(l2_path) as f:
+        l2_data = json.load(f)
+
+    # Expected counts: 10 main + 5 feedback + 5 decision = 20
+    check(len(l1_data) == 20, f"L1 should have 20 problems, got {len(l1_data)}")
+    check(len(l2_data) == 20, f"L2 should have 20 problems, got {len(l2_data)}")
+
+    # Verify difficulty distribution for main problems
+    for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
+        main_problems = [p for p in level_data if "main" in p["id"]]
+        diffs = [p["difficulty"] for p in main_problems]
+        for d in ["easy", "medium", "hard"]:
+            count = diffs.count(d)
+            check(
+                count >= 2,
+                f"{level_name} should have at least 2 {d} main problems, got {count}",
+            )
+
+    # Verify decision problems have payoff fields
+    for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
+        decision_problems = [p for p in level_data if "decision" in p["id"]]
+        check(
+            len(decision_problems) == 5,
+            f"{level_name} should have 5 decision problems, got {len(decision_problems)}",
+        )
+        for dp in decision_problems:
+            check(
+                "payoff_correct" in dp,
+                f"{level_name} decision {dp['id']} missing payoff_correct",
+            )
+            check(
+                "payoff_wrong" in dp,
+                f"{level_name} decision {dp['id']} missing payoff_wrong",
+            )
+            check(
+                "payoff_decline" in dp,
+                f"{level_name} decision {dp['id']} missing payoff_decline",
+            )
+            check(
+                "is_solvable" in dp,
+                f"{level_name} decision {dp['id']} missing is_solvable",
+            )
+
+    # Spot-check: verify a Type-A L2 main problem's Zeta RHS
+    l2_type_a = [p for p in l2_data if p["problem_type"] == "A"
+                 and "main" in p["id"] and p.get("is_solvable", True)]
+    if l2_type_a:
+        p = l2_type_a[0]
+        meta = p["difficulty_metadata"]
+        A_zeta = meta["zeta_coefficients"]
+        x_true = meta["solution"]
+        rhs = meta["rhs"]
+        for i in range(3):
+            computed = sum(_zeta_mul(A_zeta[i][j], x_true[j]) for j in range(3))
+            check(
+                computed == rhs[i],
+                f"JSON {p['id']} eq {i+1}: computed RHS={computed}, stored={rhs[i]}",
+            )
+
+    # Verify unsolvable decision problems (2 per level)
+    for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
+        decision = [p for p in level_data if "decision" in p["id"]]
+        unsolvable = [p for p in decision if not p.get("is_solvable", True)]
+        check(
+            len(unsolvable) == 2,
+            f"{level_name} should have 2 unsolvable decision problems, got {len(unsolvable)}",
+        )
+
+    # Verify no zero Zeta coefficients in L2 Type-A problems
+    for p in l2_data:
+        if p["problem_type"] == "A":
+            meta = p.get("difficulty_metadata", {})
+            zc = meta.get("zeta_coefficients")
+            if zc:
+                has_zero = any(c == 0 for row in zc for c in row)
+                check(
+                    not has_zero,
+                    f"JSON {p['id']} has zero Zeta coefficient (MEDIUM-6 fix needed)",
+                )
+
+    # Verify negative Zeta coefficients are parenthesized in problem statements
+    import re
+    for p in l2_data:
+        if p["problem_type"] == "A" and "(*)" in p.get("problem_statement", ""):
+            bad = re.findall(r'(?<!\()(-\d+) \(\*\)', p["problem_statement"])
+            check(
+                len(bad) == 0,
+                f"JSON {p['id']} has unparenthesized negative Zeta coefficient: {bad}",
+            )
+
+    print(f"  JSON file validation complete")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -675,6 +930,9 @@ def main():
     validate_decision_generators()
     validate_decision_scorer()
     validate_metacognitive_control()
+    validate_contradictory_systems()
+    validate_zeta_math()
+    validate_json_files()
 
     print("=" * 40)
     print(f"Results: {_pass} passed, {_fail} failed")

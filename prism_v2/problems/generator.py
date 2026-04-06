@@ -631,6 +631,11 @@ def generate_type_a_l2(
     # We work backwards: pick solution and Zeta coefficients, compute RHS
     while True:
         A_zeta = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(3)]
+        # Require all Zeta coefficients to be nonzero. When a_ij = 0,
+        # zeta_mul(0, x) = 0*x + 0 + x = x, so the effective coefficient
+        # is 1, not 0. This is misleadingly unfair to models.
+        if any(A_zeta[i][j] == 0 for i in range(3) for j in range(3)):
+            continue
         # Effective coefficients: a_ij + 1
         A_eff = [[A_zeta[i][j] + 1 for j in range(3)] for i in range(3)]
         # Ensure A_eff[0][0] != 0 for elimination
@@ -686,7 +691,11 @@ def generate_type_a_l2(
         parts = []
         var_names = ["x", "y", "z"]
         for j, c in enumerate(coeffs):
-            term = f"{c} (*) {var_names[j]}"
+            # Parenthesize negative coefficients to avoid ambiguity:
+            # (-3) (*) y is unambiguous, whereas -3 (*) y could be
+            # parsed as -(3 (*) y).
+            c_str = f"({c})" if c < 0 else str(c)
+            term = f"{c_str} (*) {var_names[j]}"
             if parts:
                 parts.append(f" + {term}")
             else:
@@ -847,12 +856,18 @@ def _generate_contradictory_system_l2(
     coeff_range = (-4, 4)
     while True:
         A_zeta = [[rng.randint(*coeff_range) for _ in range(3)] for _ in range(2)]
+        # Require nonzero Zeta coefficients for rows 1-2
+        if any(A_zeta[i][j] == 0 for i in range(2) for j in range(3)):
+            continue
         A_eff = [[A_zeta[i][j] + 1 for j in range(3)] for i in range(2)]
         alpha = rng.choice([-2, -1, 1, 2])
         beta = rng.choice([-2, -1, 1, 2])
         row3_eff = [alpha * A_eff[0][j] + beta * A_eff[1][j] for j in range(3)]
         # Reverse the +1 to get Zeta coefficients for row3
         row3_zeta = [row3_eff[j] - 1 for j in range(3)]
+        # Require nonzero Zeta coefficients for row3 as well
+        if any(c == 0 for c in row3_zeta):
+            continue
         if A_eff[0][0] == 0:
             continue
         if all(c == 0 for c in row3_eff):
@@ -881,7 +896,8 @@ def _generate_contradictory_system_l2(
         parts = []
         var_names = ["x", "y", "z"]
         for j, c in enumerate(coeffs):
-            term = f"{c} (*) {var_names[j]}"
+            c_str = f"({c})" if c < 0 else str(c)
+            term = f"{c_str} (*) {var_names[j]}"
             if parts:
                 parts.append(f" + {term}")
             else:
