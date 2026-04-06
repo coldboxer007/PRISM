@@ -19,7 +19,7 @@ across six complementary tasks:
   Task 5: Metacognitive Control (accept/decline utility)
   Task 6: Novelty Robustness (L2/L1 ratio)
 
-Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1)
+Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * mean(T5_L1, T5_L2) + 0.30 * min(T6, 1)
 
 Usage on Kaggle:
   1. Upload the prism_v2/ package as a Kaggle dataset
@@ -121,7 +121,7 @@ def prism_metacognition(llm) -> float:
     A metacognition benchmark measuring whether LLMs can accurately
     monitor their own reasoning before, during, and after solving problems.
 
-    Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1)
+    Primary score = 0.40 * mean(T4_L1, T4_L2) + 0.30 * mean(T5_L1, T5_L2) + 0.30 * min(T6, 1)
     """
     # Run the full pipeline (D1 -> D2 -> D3 for all problems)
     # Cache covers both the pipeline run AND all task score computations
@@ -151,6 +151,9 @@ def prism_metacognition(llm) -> float:
 
         # Cross-level score (reads cached T4 scores — no extra judge calls)
         t6 = compute_task_6(pipeline, kbench, judge_llm=kbench.judge_llm)
+
+    # --- Compute primary score ---
+    # 0.40 * mean(T4_L1, T4_L2) + 0.30 * mean(T5_L1, T5_L2) + 0.30 * min(T6, 1.0)
 
     # --- Report all scores via assertions for leaderboard visibility ---
     kbench.assertions.assert_true(
@@ -202,10 +205,9 @@ def prism_metacognition(llm) -> float:
         ),
     )
 
-    # Primary score: weighted combination of coherence, control, and robustness
-    # 0.40 * mean(T4_L1, T4_L2) + 0.30 * T5_L1 + 0.30 * min(T6, 1.0)
     t4_mean = (t4_l1 + t4_l2) / 2.0
-    primary = 0.40 * t4_mean + 0.30 * t5_l1 + 0.30 * min(t6, 1.0)
+    t5_mean = (t5_l1 + t5_l2) / 2.0
+    primary = 0.40 * t4_mean + 0.30 * t5_mean + 0.30 * min(t6, 1.0)
     return primary
 
 
@@ -219,5 +221,9 @@ run
 # ============================================================================
 # CELL 6: Select this task for the leaderboard
 # ============================================================================
+
+# NOTE: On Kaggle Benchmarks, uncomment the line below to register this task
+# for the leaderboard. It is commented here because %choose is a Kaggle magic
+# command that only works inside the Kaggle notebook environment.
 
 # %choose prism_metacognition

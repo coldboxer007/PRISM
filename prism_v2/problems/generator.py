@@ -1170,6 +1170,9 @@ def generate_problem_set(
         idx += 1
 
     # Feedback problems — same decoupling
+    # NOTE: These are generated and stored in JSON for potential future use
+    # (e.g., an adaptive calibration task). They are NOT currently executed
+    # by run_all(); the Task 5 slot is filled by decision problems instead.
     for i in range(num_feedback):
         ptype = types[i % len(types)]
         diff = difficulties[(i // len(types)) % len(difficulties)]

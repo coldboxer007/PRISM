@@ -40,11 +40,11 @@ Six tasks derive scores from comparing D1, D2, and D3:
 | T1 | AUROC | Can overall confidence predict correctness? | 0-1 (chance=0.5) |
 | T2 | Spearman rho | Do per-step confidences track step difficulty? | 0-1 (chance=0.5) |
 | T3 | Proportion | Can the model accurately self-assess after solving? | 0-1 |
-| **T4** | **Weighted composite** | **Are before/after metacognitive reports coherent?** | **0-1** |
-| T5 | Pearson r | Does the model update confidence from feedback? | 0-1 |
+| T4 | Weighted composite | Are before/after metacognitive reports coherent? | 0-1 |
+| T5 | Utility ratio | Does the model act on its self-knowledge (accept/decline)? | 0-1 |
 | T6 | L2/L1 ratio | Does metacognition survive novel operators? | 0-1 |
 
-**Task 4 (Coherence) is the primary leaderboard metric** -- it is the most novel score, measuring whether the model's prospective predictions are internally consistent with its retrospective self-assessment.
+**Primary score = 0.40 × mean(T4_L1, T4_L2) + 0.30 × mean(T5_L1, T5_L2) + 0.30 × min(T6, 1)** — a weighted combination of coherence (the most novel construct), metacognitive control, and novelty robustness.
 
 ---
 
@@ -98,8 +98,8 @@ prism_v2/
   problems/
     __init__.py
     generator.py                           # Problem generation engine
-    l1_problems.json                       # 15 pre-generated L1 problems
-    l2_problems.json                       # 15 pre-generated L2 problems
+    l1_problems.json                       # 20 pre-generated L1 problems
+    l2_problems.json                       # 20 pre-generated L2 problems
 
   prompts/
     __init__.py
@@ -107,12 +107,14 @@ prism_v2/
     prospective.py                         # D1 prompt builder
     solve.py                               # D2 prompt builder
     retrospective.py                       # D3 prompt builder
-    feedback.py                            # Feedback round prompt builder
+    decision.py                            # Decision prompt builder (Task 5)
+    feedback.py                            # Feedback round prompt (reserved)
 
   scoring/
     __init__.py
     confidence_parser.py                   # Parse LLM metacognitive responses
     step_scorer.py                         # Extract and verify step answers
+    decision_scorer.py                     # Parse accept/decline decisions
     metrics.py                             # All statistical metrics
 
   tasks/
@@ -120,8 +122,8 @@ prism_v2/
     task_01_prospective_calibration.py     # AUROC
     task_02_step_accuracy.py               # Spearman rho
     task_03_retrospective_accuracy.py      # Self-assessment accuracy
-    task_04_coherence.py                   # Coherence composite (PRIMARY)
-    task_05_adaptive_calibration.py        # Confidence drift
+    task_04_coherence.py                   # Coherence composite
+    task_05_adaptive_calibration.py        # Metacognitive control (accept/decline)
     task_06_novelty_robustness.py          # L2/L1 ratio
 ```
 
@@ -156,11 +158,13 @@ The directory structure in the dataset should be:
       prospective.py
       solve.py
       retrospective.py
+      decision.py
       feedback.py
     scoring/
       __init__.py
       confidence_parser.py
       step_scorer.py
+      decision_scorer.py
       metrics.py
     tasks/
       __init__.py
@@ -197,7 +201,8 @@ The notebook has 6 code cells:
 ### Step 4: Submit
 
 - Cell 6 (`%choose prism_metacognition`) designates this task for the leaderboard
-- The task returns the **Task 4 (Coherence) L1 score** as the primary metric
+- The task returns the **primary composite score** as the leaderboard metric:
+  `0.40 * mean(T4_L1, T4_L2) + 0.30 * mean(T5_L1, T5_L2) + 0.30 * min(T6, 1)`
 - All six task scores are reported via `kbench.assertions.assert_true(...)` for visibility
 
 ---
@@ -217,12 +222,14 @@ For each of the 20 main problems (10 L1 + 10 L2):
 6. Store ProblemResult in cache
 ```
 
-For 10 feedback problems (5 L1 + 5 L2) used by Task 5:
+For 10 decision problems (5 L1 + 5 L2) used by Task 5:
 
 ```
-1. Single shared chat across rounds
-2. Each round: new problem + feedback from previous round's accuracy
-3. Model should update its confidence based on feedback
+1. Create isolated chat per decision problem
+2. Present problem with explicit payoff structure (+correct, -wrong, +decline)
+3. Model decides ACCEPT or DECLINE, then attempts to solve regardless
+4. Parse decision and evaluate solve attempt against ground truth
+5. Store DecisionResult in cache
 ```
 
 ### Caching
@@ -256,27 +263,29 @@ For 10 feedback problems (5 L1 + 5 L2) used by Task 5:
 - **Metric:** Proportion of steps with correct labels
 - **Interpretation:** Can the model accurately describe its own performance after the fact?
 
-### Task 4: Coherence (PRIMARY -- Composite)
+### Task 4: Coherence (Composite)
 
 Three sub-scores:
 
 | Sub-score | Weight | What it measures |
 |-----------|--------|-----------------|
-| A: Location consistency | 0.3 | Predicted-weakest == reported-hardest? |
-| B: Confidence consistency | 0.4 | Spearman rho between D1 confidence and D3 difficulty |
-| C: Counterfactual plausibility | 0.3 | LLM-as-judge rates counterfactual quality |
+| A: Location consistency | 0.35 | Predicted-weakest == reported-hardest? |
+| B: Confidence consistency | 0.45 | Spearman rho between D1 confidence and D3 difficulty |
+| C: Counterfactual plausibility | 0.20 | LLM-as-judge rates counterfactual quality (demoted; fluent reflection is weak evidence of genuine self-monitoring) |
 
 - **Sub-score C** uses `kbench.assertions.assess_response_with_judge()` with 3 criteria:
   1. Is the alternative approach mathematically valid?
   2. Is the reason for rejecting it logically coherent?
   3. Is it substantively different from what was actually done?
 
-### Task 5: Adaptive Calibration (Pearson r)
+### Task 5: Metacognitive Control (Utility Ratio)
 
-- **Input:** Confidence vectors + correctness across 5 feedback rounds
-- **Metric:** Pearson correlation between per-step confidence slopes and accuracy slopes
-- **Interpretation:** Does the model appropriately update its confidence from feedback?
-- **Clamped:** max(0, r)
+- **Input:** Accept/decline decisions + solve outcomes + payoff structures
+- **Problems:** 5 per novelty level (3 solvable at varying difficulty/risk + 2 unsolvable)
+- **Payoff profiles:** low (+5/-3/+1), medium (+10/-15/+2), high (+20/-30/+3)
+- **Metric:** `(model_utility - worst_utility) / (optimal_utility - worst_utility)`
+- **Interpretation:** Does the model act on its self-knowledge by declining problems it can't solve and accepting problems it can?
+- **Range:** 0.0 (worst possible decisions) to 1.0 (optimal oracle)
 
 ### Task 6: Novelty Robustness (L2/L1 ratio)
 
@@ -310,8 +319,9 @@ Each type has easy, medium, and hard variants with increasing coefficient/operan
 ### Problem Counts
 
 - 10 main problems per novelty level (Types A/B/C across difficulties)
-- 5 feedback problems per novelty level (used for Task 5 adaptive calibration)
-- Total: 30 problems (15 L1 + 15 L2)
+- 5 decision problems per novelty level (3 solvable + 2 unsolvable, used for Task 5)
+- 5 feedback problems per novelty level (reserved for future use; not currently executed)
+- Total: 40 problems stored (20 L1 + 20 L2), 30 actively used
 
 ---
 
