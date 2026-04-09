@@ -126,12 +126,9 @@ def prism_metacognition(llm) -> float:
     # Run the full pipeline (D1 -> D2 -> D3 for all problems)
     # Cache covers both the pipeline run AND all task score computations
     # (including judge LLM calls in Task 4) to avoid redundant API calls.
-    # NOTE: It is unknown whether enable_cache() covers the internal chat
-    # created by kbench.assertions.assess_response_with_judge(). The
-    # pipeline's own cache prevents triple judge calls regardless, but
-    # if enable_cache() does not cover the judge's internal chat, there
-    # could be uncached API calls on cache-miss scenarios. Test empirically
-    # on the first Kaggle submission.
+    # NOTE: The Kaggle cache may not cover judge LLM calls made by
+    # assess_response_with_judge(); the pipeline's own score cache
+    # prevents redundant judge invocations regardless.
     with kbench.client.enable_cache():
         pipeline.run_all(llm, kbench)
 

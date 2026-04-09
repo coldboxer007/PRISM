@@ -899,7 +899,7 @@ def validate_json_files():
                 )
 
     # Verify no zero effective coefficients in L2 Type-A problems
-    from prism_v2.problems.generator import _zeta_mul
+    # Effective coefficient for zeta_mul(a, x) = (a+1)*x + a, so coeff on x is (a+1)
     for p in l2_data:
         if p["problem_type"] == "A":
             meta = p.get("difficulty_metadata", {})
@@ -908,7 +908,7 @@ def validate_json_files():
             if zc and sol:
                 for i in range(3):
                     for j in range(3):
-                        eff = _zeta_mul(zc[i][j], 1)  # effective coefficient
+                        eff = zc[i][j] + 1  # effective coefficient
                         check(
                             eff != 0,
                             f"JSON {p['id']} eq{i+1} var{j+1}: effective coeff is 0 "

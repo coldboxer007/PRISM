@@ -19,7 +19,7 @@ Most existing metacognition benchmarks measure calibration — does stated confi
 
 1. **Step-level resolution** — not just "how confident are you?" but "which specific step will fail?"
 2. **Temporal coherence** — do pre-task predictions and post-task reflections tell the same story?
-3. **Adaptive learning** — does the model update beliefs appropriately after feedback?
+3. **Metacognitive control** — can the model decide whether to attempt a problem based on self-assessed competence?
 
 No existing benchmark tests all three simultaneously.
 
@@ -55,7 +55,7 @@ From the cognitive taxonomy paper, metacognition includes:
 PRISM tests all three:
 - Knowledge → the model must predict which step will be hard (requires self-knowledge)
 - Monitoring → the model must assess per-step outcomes retrospectively
-- Control → the model must update confidence after feedback (adaptive calibration)
+- Control → the model must decide whether to accept or decline problems based on self-assessed competence (metacognitive control)
 
 ---
 
@@ -510,7 +510,7 @@ prism_v2/
 │   ├── task_02_step_accuracy.py                # Spearman ρ task
 │   ├── task_03_retrospective_accuracy.py       # Self-assessment task
 │   ├── task_04_coherence.py                    # Coherence composite task
-│   ├── task_05_adaptive_calibration.py         # Feedback drift task
+│   ├── task_05_adaptive_calibration.py         # Metacognitive control task
 │   └── task_06_novelty_robustness.py           # L1/L2 ratio task
 ├── problems/
 │   ├── generator.py                            # Problem generation engine
@@ -525,7 +525,7 @@ prism_v2/
 │   ├── prospective.py                          # D1 prompt template
 │   ├── solve.py                                # D2 prompt template
 │   ├── retrospective.py                        # D3 prompt template
-│   └── feedback.py                             # Feedback round prompt template
+│   └── feedback.py                             # (Legacy, unused)
 └── notebook.ipynb                              # Main Kaggle notebook
 ```
 
@@ -737,7 +737,7 @@ Reasons:
 - Speed — no generation overhead during benchmark execution
 - Debugging — problems can be inspected and reviewed
 
-Generate 15 L1 problems (10 main + 5 feedback) and 15 L2 problems, at three difficulty levels (5 each). Store in JSON files attached to the Kaggle notebook as datasets.
+Generate 10 L1 main problems, 5 L1 decision problems, and 15 L2 problems (10 main + 5 decision), at three difficulty levels. Store in JSON files attached to the Kaggle notebook as datasets.
 
 ---
 
