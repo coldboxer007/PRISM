@@ -1,0 +1,2309 @@
+[
+  {
+    "id": "l2_main_000",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 15 items at $49 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $20 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 8 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $23 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 49 (*) 15",
+      "Zeta-subtract discount: 799 (-) 20",
+      "Compute tax and Zeta-add: 778 (+) 62",
+      "Zeta-add shipping: 841 (+) 23",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "799",
+      "778",
+      "841",
+      "865",
+      "57.67"
+    ],
+    "ground_truth_final": "865",
+    "difficulty_metadata": {
+      "price_per_unit": 49,
+      "units": 15,
+      "tax_pct": 8,
+      "discount_flat": 20,
+      "shipping": 23,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_001",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 92 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 26, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 3 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 69, then take mod 23\nStep 5: Raise the result of Step 4 to the power 8 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 92 mod 23",
+      "Star-add(0, 26) mod 23 = (2*0 + 26) mod 23",
+      "(3 * 3) mod 23",
+      "Star-add(9, 69) mod 23 = (2*9 + 69) mod 23",
+      "(18^8) mod 23"
+    ],
+    "ground_truth_steps": [
+      "0",
+      "3",
+      "9",
+      "18",
+      "16"
+    ],
+    "ground_truth_final": "16",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        92,
+        26,
+        3,
+        69,
+        8
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_002",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 1 (*) x + 2 (*) y + 3 (*) z = 30\nEquation 2: 2 (*) x + 3 (*) y + 3 (*) z = 36\nEquation 3: (-2) (*) x + 3 (*) y + (-3) (*) z = -14\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 3/2",
+      "Eliminate x from eq2: new RHS = 28 - 1.5*24",
+      "Eliminate x from eq3: new RHS = -12 - -0.5*24",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "1.5",
+      "-8",
+      "0",
+      "4",
+      "0"
+    ],
+    "ground_truth_final": "x = 4, y = 0, z = 4",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          3,
+          3
+        ],
+        [
+          -2,
+          3,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          4
+        ],
+        [
+          -1,
+          4,
+          -2
+        ]
+      ],
+      "solution": [
+        4,
+        0,
+        4
+      ],
+      "rhs": [
+        30,
+        36,
+        -14
+      ],
+      "determinant": 22,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_003",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 15 items at $6 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $15 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 10 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $3 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 6 (*) 15",
+      "Zeta-subtract discount: 111 (-) 15",
+      "Compute tax and Zeta-add: 95 (+) 9",
+      "Zeta-add shipping: 105 (+) 3",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "111",
+      "95",
+      "105",
+      "109",
+      "7.27"
+    ],
+    "ground_truth_final": "109",
+    "difficulty_metadata": {
+      "price_per_unit": 6,
+      "units": 15,
+      "tax_pct": 10,
+      "discount_flat": 15,
+      "shipping": 3,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_004",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 7).\nShow your work for each step.\n\nStep 1: Compute 11 mod 7\nStep 2: Apply Star-addition: result_of_step_1 (+) 45, then take mod 7\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 8 (standard multiplication), then take mod 7\nStep 4: Apply Star-addition: result_of_step_3 (+) 60, then take mod 7\nStep 5: Raise the result of Step 4 to the power 2 (standard), then take mod 7",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 11 mod 7",
+      "Star-add(4, 45) mod 7 = (2*4 + 45) mod 7",
+      "(4 * 8) mod 7",
+      "Star-add(4, 60) mod 7 = (2*4 + 60) mod 7",
+      "(5^2) mod 7"
+    ],
+    "ground_truth_steps": [
+      "4",
+      "4",
+      "4",
+      "5",
+      "4"
+    ],
+    "ground_truth_final": "4",
+    "difficulty_metadata": {
+      "modulus": 7,
+      "operands": [
+        11,
+        45,
+        8,
+        60,
+        2
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_005",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 4 (*) x + 6 (*) y + 5 (*) z = -33\nEquation 2: 7 (*) x + 2 (*) y + 7 (*) z = -5\nEquation 3: 2 (*) x + (-2) (*) y + (-3) (*) z = -1\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 8/5\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 3/5). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 8/5",
+      "Eliminate x from eq2: new RHS = -21 - 1.6*-48",
+      "Eliminate x from eq3: new RHS = 2 - 0.6*-48",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "1.6",
+      "55.8",
+      "30.8",
+      "1",
+      "-7"
+    ],
+    "ground_truth_final": "x = -1, y = -7, z = 1",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          4,
+          6,
+          5
+        ],
+        [
+          7,
+          2,
+          7
+        ],
+        [
+          2,
+          -2,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          5,
+          7,
+          6
+        ],
+        [
+          8,
+          3,
+          8
+        ],
+        [
+          3,
+          -1,
+          -2
+        ]
+      ],
+      "solution": [
+        -1,
+        -7,
+        1
+      ],
+      "rhs": [
+        -33,
+        -5,
+        -1
+      ],
+      "determinant": 188,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_006",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 26 items at $40 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $40 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 9 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $23 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 40 (*) 26",
+      "Zeta-subtract discount: 1106 (-) 40",
+      "Compute tax and Zeta-add: 1065 (+) 95",
+      "Zeta-add shipping: 1161 (+) 23",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1106",
+      "1065",
+      "1161",
+      "1185",
+      "45.58"
+    ],
+    "ground_truth_final": "1185",
+    "difficulty_metadata": {
+      "price_per_unit": 40,
+      "units": 26,
+      "tax_pct": 9,
+      "discount_flat": 40,
+      "shipping": 23,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_007",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 13).\nShow your work for each step.\n\nStep 1: Compute 92 mod 13\nStep 2: Apply Star-addition: result_of_step_1 (+) 35, then take mod 13\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 9 (standard multiplication), then take mod 13\nStep 4: Apply Star-addition: result_of_step_3 (+) 30, then take mod 13\nStep 5: Raise the result of Step 4 to the power 7 (standard), then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 92 mod 13",
+      "Star-add(1, 35) mod 13 = (2*1 + 35) mod 13",
+      "(11 * 9) mod 13",
+      "Star-add(8, 30) mod 13 = (2*8 + 30) mod 13",
+      "(7^7) mod 13"
+    ],
+    "ground_truth_steps": [
+      "1",
+      "11",
+      "8",
+      "7",
+      "6"
+    ],
+    "ground_truth_final": "6",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        92,
+        35,
+        9,
+        30,
+        7
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_008",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-5) (*) x + (-8) (*) y + 8 (*) z = 273\nEquation 2: (-2) (*) x + (-6) (*) y + 8 (*) z = 213\nEquation 3: (-8) (*) x + 7 (*) y + 1 (*) z = 17\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = -1/-4\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -7/-4). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = -1/-4",
+      "Eliminate x from eq2: new RHS = 213 - 0.25*278",
+      "Eliminate x from eq3: new RHS = 17 - 1.75*278",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "0.25",
+      "143.5",
+      "-469.5",
+      "15",
+      "-13"
+    ],
+    "ground_truth_final": "x = -13, y = -13, z = 15",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          -5,
+          -8,
+          8
+        ],
+        [
+          -2,
+          -6,
+          8
+        ],
+        [
+          -8,
+          7,
+          1
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          -4,
+          -7,
+          9
+        ],
+        [
+          -1,
+          -5,
+          9
+        ],
+        [
+          -7,
+          8,
+          2
+        ]
+      ],
+      "solution": [
+        -13,
+        -13,
+        15
+      ],
+      "rhs": [
+        273,
+        213,
+        17
+      ],
+      "determinant": 368,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_009",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 16 items at $92 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $73 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 8 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $28 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 92 (*) 16",
+      "Zeta-subtract discount: 1580 (-) 73",
+      "Compute tax and Zeta-add: 1506 (+) 120",
+      "Zeta-add shipping: 1627 (+) 28",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1580",
+      "1506",
+      "1627",
+      "1656",
+      "103.5"
+    ],
+    "ground_truth_final": "1656",
+    "difficulty_metadata": {
+      "price_per_unit": 92,
+      "units": 16,
+      "tax_pct": 8,
+      "discount_flat": 73,
+      "shipping": 28,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_010",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 12 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 19, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 12 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 74, then take mod 23\nStep 5: Raise the result of Step 4 to the power 8 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 12 mod 23",
+      "Star-add(12, 19) mod 23 = (2*12 + 19) mod 23",
+      "(20 * 12) mod 23",
+      "Star-add(10, 74) mod 23 = (2*10 + 74) mod 23",
+      "(2^8) mod 23"
+    ],
+    "ground_truth_steps": [
+      "12",
+      "20",
+      "10",
+      "2",
+      "3"
+    ],
+    "ground_truth_final": "3",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        12,
+        19,
+        12,
+        74,
+        8
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_011",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 2 (*) x + 2 (*) y + (-2) (*) z = 10\nEquation 2: (-3) (*) x + 3 (*) y + (-3) (*) z = -1\nEquation 3: (-2) (*) x + (-3) (*) y + (-2) (*) z = -18\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = -2/3\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/3). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = -2/3",
+      "Eliminate x from eq2: new RHS = 2 - -0.666667*8",
+      "Eliminate x from eq3: new RHS = -11 - -0.333333*8",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-0.666667",
+      "7.33333",
+      "-8.33333",
+      "4",
+      "3"
+    ],
+    "ground_truth_final": "x = 1, y = 3, z = 4",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          2,
+          2,
+          -2
+        ],
+        [
+          -3,
+          3,
+          -3
+        ],
+        [
+          -2,
+          -3,
+          -2
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          3,
+          3,
+          -1
+        ],
+        [
+          -2,
+          4,
+          -2
+        ],
+        [
+          -1,
+          -2,
+          -1
+        ]
+      ],
+      "solution": [
+        1,
+        3,
+        4
+      ],
+      "rhs": [
+        10,
+        -1,
+        -18
+      ],
+      "determinant": -32,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_012",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 10 items at $11 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $10 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 5 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $6 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 11 (*) 10",
+      "Zeta-subtract discount: 131 (-) 10",
+      "Compute tax and Zeta-add: 120 (+) 6",
+      "Zeta-add shipping: 127 (+) 6",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "131",
+      "120",
+      "127",
+      "134",
+      "13.4"
+    ],
+    "ground_truth_final": "134",
+    "difficulty_metadata": {
+      "price_per_unit": 11,
+      "units": 10,
+      "tax_pct": 5,
+      "discount_flat": 10,
+      "shipping": 6,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_013",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 7).\nShow your work for each step.\n\nStep 1: Compute 34 mod 7\nStep 2: Apply Star-addition: result_of_step_1 (+) 45, then take mod 7\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 4 (standard multiplication), then take mod 7\nStep 4: Apply Star-addition: result_of_step_3 (+) 26, then take mod 7\nStep 5: Raise the result of Step 4 to the power 6 (standard), then take mod 7",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 34 mod 7",
+      "Star-add(6, 45) mod 7 = (2*6 + 45) mod 7",
+      "(1 * 4) mod 7",
+      "Star-add(4, 26) mod 7 = (2*4 + 26) mod 7",
+      "(6^6) mod 7"
+    ],
+    "ground_truth_steps": [
+      "6",
+      "1",
+      "4",
+      "6",
+      "1"
+    ],
+    "ground_truth_final": "1",
+    "difficulty_metadata": {
+      "modulus": 7,
+      "operands": [
+        34,
+        45,
+        4,
+        26,
+        6
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_014",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 6 (*) x + 2 (*) y + (-2) (*) z = -18\nEquation 2: 5 (*) x + 4 (*) y + 6 (*) z = -106\nEquation 3: 7 (*) x + 2 (*) y + 3 (*) z = -63\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 6/7\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 8/7). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 6/7",
+      "Eliminate x from eq2: new RHS = -121 - 0.857143*-24",
+      "Eliminate x from eq3: new RHS = -75 - 1.14286*-24",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "0.857143",
+      "-100.429",
+      "-47.5714",
+      "-10",
+      "-9"
+    ],
+    "ground_truth_final": "x = -1, y = -9, z = -10",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          6,
+          2,
+          -2
+        ],
+        [
+          5,
+          4,
+          6
+        ],
+        [
+          7,
+          2,
+          3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          7,
+          3,
+          -1
+        ],
+        [
+          6,
+          5,
+          7
+        ],
+        [
+          8,
+          3,
+          4
+        ]
+      ],
+      "solution": [
+        -1,
+        -9,
+        -10
+      ],
+      "rhs": [
+        -18,
+        -106,
+        -63
+      ],
+      "determinant": 111,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_015",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 26 items at $40 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $29 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 9 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $13 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 40 (*) 26",
+      "Zeta-subtract discount: 1106 (-) 29",
+      "Compute tax and Zeta-add: 1076 (+) 96",
+      "Zeta-add shipping: 1173 (+) 13",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1106",
+      "1076",
+      "1173",
+      "1187",
+      "45.65"
+    ],
+    "ground_truth_final": "1187",
+    "difficulty_metadata": {
+      "price_per_unit": 40,
+      "units": 26,
+      "tax_pct": 9,
+      "discount_flat": 29,
+      "shipping": 13,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_016",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 13).\nShow your work for each step.\n\nStep 1: Compute 59 mod 13\nStep 2: Apply Star-addition: result_of_step_1 (+) 43, then take mod 13\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 10 (standard multiplication), then take mod 13\nStep 4: Apply Star-addition: result_of_step_3 (+) 15, then take mod 13\nStep 5: Raise the result of Step 4 to the power 6 (standard), then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 59 mod 13",
+      "Star-add(7, 43) mod 13 = (2*7 + 43) mod 13",
+      "(5 * 10) mod 13",
+      "Star-add(11, 15) mod 13 = (2*11 + 15) mod 13",
+      "(11^6) mod 13"
+    ],
+    "ground_truth_steps": [
+      "7",
+      "5",
+      "11",
+      "11",
+      "12"
+    ],
+    "ground_truth_final": "12",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        59,
+        43,
+        10,
+        15,
+        6
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_017",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 2 (*) x + (-4) (*) y + (-3) (*) z = -19\nEquation 2: (-8) (*) x + 3 (*) y + 8 (*) z = 7\nEquation 3: 5 (*) x + (-6) (*) y + 7 (*) z = 1\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = -7/3\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 6/3). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = -7/3",
+      "Eliminate x from eq2: new RHS = 4 - -2.33333*-14",
+      "Eliminate x from eq3: new RHS = -5 - 2*-14",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-2.33333",
+      "-28.6667",
+      "23",
+      "1",
+      "11"
+    ],
+    "ground_truth_final": "x = 7, y = 11, z = 1",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          2,
+          -4,
+          -3
+        ],
+        [
+          -8,
+          3,
+          8
+        ],
+        [
+          5,
+          -6,
+          7
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          3,
+          -3,
+          -2
+        ],
+        [
+          -7,
+          4,
+          9
+        ],
+        [
+          6,
+          -5,
+          8
+        ]
+      ],
+      "solution": [
+        7,
+        11,
+        1
+      ],
+      "rhs": [
+        -19,
+        7,
+        1
+      ],
+      "determinant": -121,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_018",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 42 items at $34 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $47 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 6 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $27 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 34 (*) 42",
+      "Zeta-subtract discount: 1504 (-) 47",
+      "Compute tax and Zeta-add: 1456 (+) 87",
+      "Zeta-add shipping: 1544 (+) 27",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1504",
+      "1456",
+      "1544",
+      "1572",
+      "37.43"
+    ],
+    "ground_truth_final": "1572",
+    "difficulty_metadata": {
+      "price_per_unit": 34,
+      "units": 42,
+      "tax_pct": 6,
+      "discount_flat": 47,
+      "shipping": 27,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_019",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 85 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 77, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 5 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 32, then take mod 23\nStep 5: Raise the result of Step 4 to the power 6 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 85 mod 23",
+      "Star-add(16, 77) mod 23 = (2*16 + 77) mod 23",
+      "(17 * 5) mod 23",
+      "Star-add(16, 32) mod 23 = (2*16 + 32) mod 23",
+      "(18^6) mod 23"
+    ],
+    "ground_truth_steps": [
+      "16",
+      "17",
+      "16",
+      "18",
+      "8"
+    ],
+    "ground_truth_final": "8",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        85,
+        77,
+        5,
+        32,
+        6
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_020",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 1 (*) x + (-3) (*) y + 3 (*) z = -21\nEquation 2: 3 (*) x + 3 (*) y + (-3) (*) z = -3\nEquation 3: (-2) (*) x + 3 (*) y + (-3) (*) z = 12\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 4/2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 4/2",
+      "Eliminate x from eq2: new RHS = -6 - 2*-22",
+      "Eliminate x from eq3: new RHS = 14 - -0.5*-22",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "2",
+      "38",
+      "3",
+      "-3",
+      "1"
+    ],
+    "ground_truth_final": "x = -4, y = 1, z = -3",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          1,
+          -3,
+          3
+        ],
+        [
+          3,
+          3,
+          -3
+        ],
+        [
+          -2,
+          3,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          2,
+          -2,
+          4
+        ],
+        [
+          4,
+          4,
+          -2
+        ],
+        [
+          -1,
+          4,
+          -2
+        ]
+      ],
+      "solution": [
+        -4,
+        1,
+        -3
+      ],
+      "rhs": [
+        -21,
+        -3,
+        12
+      ],
+      "determinant": 60,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_021",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 9 items at $11 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $5 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 10 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $5 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 11 (*) 9",
+      "Zeta-subtract discount: 119 (-) 5",
+      "Compute tax and Zeta-add: 113 (+) 11",
+      "Zeta-add shipping: 125 (+) 5",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "119",
+      "113",
+      "125",
+      "131",
+      "14.56"
+    ],
+    "ground_truth_final": "131",
+    "difficulty_metadata": {
+      "price_per_unit": 11,
+      "units": 9,
+      "tax_pct": 10,
+      "discount_flat": 5,
+      "shipping": 5,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_022",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 7).\nShow your work for each step.\n\nStep 1: Compute 47 mod 7\nStep 2: Apply Star-addition: result_of_step_1 (+) 35, then take mod 7\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 13 (standard multiplication), then take mod 7\nStep 4: Apply Star-addition: result_of_step_3 (+) 52, then take mod 7\nStep 5: Raise the result of Step 4 to the power 2 (standard), then take mod 7",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 47 mod 7",
+      "Star-add(5, 35) mod 7 = (2*5 + 35) mod 7",
+      "(3 * 13) mod 7",
+      "Star-add(4, 52) mod 7 = (2*4 + 52) mod 7",
+      "(4^2) mod 7"
+    ],
+    "ground_truth_steps": [
+      "5",
+      "3",
+      "4",
+      "4",
+      "2"
+    ],
+    "ground_truth_final": "2",
+    "difficulty_metadata": {
+      "modulus": 7,
+      "operands": [
+        47,
+        35,
+        13,
+        52,
+        2
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_023",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 4 (*) x + 7 (*) y + (-2) (*) z = 140\nEquation 2: 5 (*) x + (-4) (*) y + (-2) (*) z = 29\nEquation 3: (-5) (*) x + (-2) (*) y + (-3) (*) z = -44\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 6/5\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -4/5). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 6/5",
+      "Eliminate x from eq2: new RHS = 30 - 1.2*131",
+      "Eliminate x from eq3: new RHS = -34 - -0.8*131",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "1.2",
+      "-127.2",
+      "70.8",
+      "-6",
+      "10"
+    ],
+    "ground_truth_final": "x = 9, y = 10, z = -6",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          4,
+          7,
+          -2
+        ],
+        [
+          5,
+          -4,
+          -2
+        ],
+        [
+          -5,
+          -2,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          5,
+          8,
+          -1
+        ],
+        [
+          6,
+          -3,
+          -1
+        ],
+        [
+          -4,
+          -1,
+          -2
+        ]
+      ],
+      "solution": [
+        9,
+        10,
+        -6
+      ],
+      "rhs": [
+        140,
+        29,
+        -44
+      ],
+      "determinant": 171,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_024",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 22 items at $19 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $26 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 7 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $19 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 19 (*) 22",
+      "Zeta-subtract discount: 459 (-) 26",
+      "Compute tax and Zeta-add: 432 (+) 30",
+      "Zeta-add shipping: 463 (+) 19",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "459",
+      "432",
+      "463",
+      "483",
+      "21.95"
+    ],
+    "ground_truth_final": "483",
+    "difficulty_metadata": {
+      "price_per_unit": 19,
+      "units": 22,
+      "tax_pct": 7,
+      "discount_flat": 26,
+      "shipping": 19,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_025",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 13).\nShow your work for each step.\n\nStep 1: Compute 28 mod 13\nStep 2: Apply Star-addition: result_of_step_1 (+) 50, then take mod 13\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 9 (standard multiplication), then take mod 13\nStep 4: Apply Star-addition: result_of_step_3 (+) 20, then take mod 13\nStep 5: Raise the result of Step 4 to the power 8 (standard), then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 28 mod 13",
+      "Star-add(2, 50) mod 13 = (2*2 + 50) mod 13",
+      "(2 * 9) mod 13",
+      "Star-add(5, 20) mod 13 = (2*5 + 20) mod 13",
+      "(4^8) mod 13"
+    ],
+    "ground_truth_steps": [
+      "2",
+      "2",
+      "5",
+      "4",
+      "3"
+    ],
+    "ground_truth_final": "3",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        28,
+        50,
+        9,
+        20,
+        8
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_026",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 5 (*) x + 2 (*) y + 2 (*) z = -84\nEquation 2: (-5) (*) x + 4 (*) y + (-7) (*) z = 87\nEquation 3: (-8) (*) x + 1 (*) y + (-3) (*) z = 78\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = -4/6\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -7/6). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = -4/6",
+      "Eliminate x from eq2: new RHS = 95 - -0.666667*-93",
+      "Eliminate x from eq3: new RHS = 88 - -1.16667*-93",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-0.666667",
+      "33",
+      "-20.5",
+      "-10",
+      "-1"
+    ],
+    "ground_truth_final": "x = -10, y = -1, z = -10",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          5,
+          2,
+          2
+        ],
+        [
+          -5,
+          4,
+          -7
+        ],
+        [
+          -8,
+          1,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          6,
+          3,
+          3
+        ],
+        [
+          -4,
+          5,
+          -6
+        ],
+        [
+          -7,
+          2,
+          -2
+        ]
+      ],
+      "solution": [
+        -10,
+        -1,
+        -10
+      ],
+      "rhs": [
+        -84,
+        87,
+        78
+      ],
+      "determinant": 195,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_027",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 21 items at $87 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $54 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 14 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $23 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 87 (*) 21",
+      "Zeta-subtract discount: 1935 (-) 54",
+      "Compute tax and Zeta-add: 1880 (+) 263",
+      "Zeta-add shipping: 2144 (+) 23",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1935",
+      "1880",
+      "2144",
+      "2168",
+      "103.24"
+    ],
+    "ground_truth_final": "2168",
+    "difficulty_metadata": {
+      "price_per_unit": 87,
+      "units": 21,
+      "tax_pct": 14,
+      "discount_flat": 54,
+      "shipping": 23,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_028",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 19 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 35, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 2 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 52, then take mod 23\nStep 5: Raise the result of Step 4 to the power 2 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 19 mod 23",
+      "Star-add(19, 35) mod 23 = (2*19 + 35) mod 23",
+      "(4 * 2) mod 23",
+      "Star-add(8, 52) mod 23 = (2*8 + 52) mod 23",
+      "(22^2) mod 23"
+    ],
+    "ground_truth_steps": [
+      "19",
+      "4",
+      "8",
+      "22",
+      "1"
+    ],
+    "ground_truth_final": "1",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        19,
+        35,
+        2,
+        52,
+        2
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_029",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-2) (*) x + 2 (*) y + (-2) (*) z = -8\nEquation 2: 2 (*) x + (-2) (*) y + 2 (*) z = 4\nEquation 3: (-2) (*) x + (-2) (*) y + 1 (*) z = -7\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/-1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/-1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 3/-1",
+      "Eliminate x from eq2: new RHS = 2 - -3*-6",
+      "Eliminate x from eq3: new RHS = -4 - 1*-6",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-3",
+      "-16",
+      "2",
+      "-2",
+      "-2"
+    ],
+    "ground_truth_final": "x = 2, y = -2, z = -2",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          -2,
+          2,
+          -2
+        ],
+        [
+          2,
+          -2,
+          2
+        ],
+        [
+          -2,
+          -2,
+          1
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          -1,
+          3,
+          -1
+        ],
+        [
+          3,
+          -1,
+          3
+        ],
+        [
+          -1,
+          -1,
+          2
+        ]
+      ],
+      "solution": [
+        2,
+        -2,
+        -2
+      ],
+      "rhs": [
+        -8,
+        4,
+        -7
+      ],
+      "determinant": -24,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_030",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 11 items at $6 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $9 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 8 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $7 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 6 (*) 11",
+      "Zeta-subtract discount: 83 (-) 9",
+      "Compute tax and Zeta-add: 73 (+) 5",
+      "Zeta-add shipping: 79 (+) 7",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "83",
+      "73",
+      "79",
+      "87",
+      "7.91"
+    ],
+    "ground_truth_final": "87",
+    "difficulty_metadata": {
+      "price_per_unit": 6,
+      "units": 11,
+      "tax_pct": 8,
+      "discount_flat": 9,
+      "shipping": 7,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_031",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 7).\nShow your work for each step.\n\nStep 1: Compute 99 mod 7\nStep 2: Apply Star-addition: result_of_step_1 (+) 93, then take mod 7\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 14 (standard multiplication), then take mod 7\nStep 4: Apply Star-addition: result_of_step_3 (+) 43, then take mod 7\nStep 5: Raise the result of Step 4 to the power 3 (standard), then take mod 7",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 99 mod 7",
+      "Star-add(1, 93) mod 7 = (2*1 + 93) mod 7",
+      "(4 * 14) mod 7",
+      "Star-add(0, 43) mod 7 = (2*0 + 43) mod 7",
+      "(1^3) mod 7"
+    ],
+    "ground_truth_steps": [
+      "1",
+      "4",
+      "0",
+      "1",
+      "1"
+    ],
+    "ground_truth_final": "1",
+    "difficulty_metadata": {
+      "modulus": 7,
+      "operands": [
+        99,
+        93,
+        14,
+        43,
+        3
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_032",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 5 (*) x + 7 (*) y + 7 (*) z = -195\nEquation 2: 7 (*) x + (-4) (*) y + (-2) (*) z = -31\nEquation 3: 6 (*) x + (-3) (*) y + (-5) (*) z = -5\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 8/6\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 7/6). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 8/6",
+      "Eliminate x from eq2: new RHS = -32 - 1.33333*-214",
+      "Eliminate x from eq3: new RHS = -3 - 1.16667*-214",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "1.33333",
+      "253.333",
+      "246.667",
+      "-10",
+      "-10"
+    ],
+    "ground_truth_final": "x = -9, y = -10, z = -10",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          5,
+          7,
+          7
+        ],
+        [
+          7,
+          -4,
+          -2
+        ],
+        [
+          6,
+          -3,
+          -5
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          6,
+          8,
+          8
+        ],
+        [
+          8,
+          -3,
+          -1
+        ],
+        [
+          7,
+          -2,
+          -4
+        ]
+      ],
+      "solution": [
+        -9,
+        -10,
+        -10
+      ],
+      "rhs": [
+        -195,
+        -31,
+        -5
+      ],
+      "determinant": 300,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_033",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 25 items at $41 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $30 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 15 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $18 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 41 (*) 25",
+      "Zeta-subtract discount: 1091 (-) 30",
+      "Compute tax and Zeta-add: 1060 (+) 159",
+      "Zeta-add shipping: 1220 (+) 18",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1091",
+      "1060",
+      "1220",
+      "1239",
+      "49.56"
+    ],
+    "ground_truth_final": "1239",
+    "difficulty_metadata": {
+      "price_per_unit": 41,
+      "units": 25,
+      "tax_pct": 15,
+      "discount_flat": 30,
+      "shipping": 18,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_034",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 13).\nShow your work for each step.\n\nStep 1: Compute 97 mod 13\nStep 2: Apply Star-addition: result_of_step_1 (+) 85, then take mod 13\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 9 (standard multiplication), then take mod 13\nStep 4: Apply Star-addition: result_of_step_3 (+) 35, then take mod 13\nStep 5: Raise the result of Step 4 to the power 2 (standard), then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 97 mod 13",
+      "Star-add(6, 85) mod 13 = (2*6 + 85) mod 13",
+      "(6 * 9) mod 13",
+      "Star-add(2, 35) mod 13 = (2*2 + 35) mod 13",
+      "(0^2) mod 13"
+    ],
+    "ground_truth_steps": [
+      "6",
+      "6",
+      "2",
+      "0",
+      "0"
+    ],
+    "ground_truth_final": "0",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        97,
+        85,
+        9,
+        35,
+        2
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_035",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 4 (*) x + 3 (*) y + (-6) (*) z = 4\nEquation 2: 2 (*) x + 6 (*) y + 5 (*) z = 41\nEquation 3: (-5) (*) x + 7 (*) y + 1 (*) z = -103\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/5\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -4/5). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 3/5",
+      "Eliminate x from eq2: new RHS = 28 - 0.6*3",
+      "Eliminate x from eq3: new RHS = -106 - -0.8*3",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "0.6",
+      "26.2",
+      "-103.6",
+      "7",
+      "-8"
+    ],
+    "ground_truth_final": "x = 14, y = -8, z = 7",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          4,
+          3,
+          -6
+        ],
+        [
+          2,
+          6,
+          5
+        ],
+        [
+          -5,
+          7,
+          1
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          5,
+          4,
+          -5
+        ],
+        [
+          3,
+          7,
+          6
+        ],
+        [
+          -4,
+          8,
+          2
+        ]
+      ],
+      "solution": [
+        14,
+        -8,
+        7
+      ],
+      "rhs": [
+        4,
+        41,
+        -103
+      ],
+      "determinant": -550,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_036",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 37 items at $46 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $76 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 14 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $14 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 46 (*) 37",
+      "Zeta-subtract discount: 1785 (-) 76",
+      "Compute tax and Zeta-add: 1708 (+) 239",
+      "Zeta-add shipping: 1948 (+) 14",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1785",
+      "1708",
+      "1948",
+      "1963",
+      "53.05"
+    ],
+    "ground_truth_final": "1963",
+    "difficulty_metadata": {
+      "price_per_unit": 46,
+      "units": 37,
+      "tax_pct": 14,
+      "discount_flat": 76,
+      "shipping": 14,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_037",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 50 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 61, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 15 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 72, then take mod 23\nStep 5: Raise the result of Step 4 to the power 7 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 50 mod 23",
+      "Star-add(4, 61) mod 23 = (2*4 + 61) mod 23",
+      "(0 * 15) mod 23",
+      "Star-add(0, 72) mod 23 = (2*0 + 72) mod 23",
+      "(3^7) mod 23"
+    ],
+    "ground_truth_steps": [
+      "4",
+      "0",
+      "0",
+      "3",
+      "2"
+    ],
+    "ground_truth_final": "2",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        50,
+        61,
+        15,
+        72,
+        7
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_038",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 1 (*) x + (-3) (*) y + (-2) (*) z = 0\nEquation 2: 2 (*) x + (-2) (*) y + (-3) (*) z = -3\nEquation 3: 2 (*) x + (-3) (*) y + (-3) (*) z = -2\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 3/2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 3/2",
+      "Eliminate x from eq2: new RHS = 0 - 1.5*4",
+      "Eliminate x from eq3: new RHS = 2 - 1.5*4",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "1.5",
+      "-6",
+      "-4",
+      "4",
+      "-2"
+    ],
+    "ground_truth_final": "x = 2, y = -2, z = 4",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          1,
+          -3,
+          -2
+        ],
+        [
+          2,
+          -2,
+          -3
+        ],
+        [
+          2,
+          -3,
+          -3
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          2,
+          -2,
+          -1
+        ],
+        [
+          3,
+          -1,
+          -2
+        ],
+        [
+          3,
+          -2,
+          -2
+        ]
+      ],
+      "solution": [
+        2,
+        -2,
+        4
+      ],
+      "rhs": [
+        0,
+        -3,
+        -2
+      ],
+      "determinant": -1,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_039",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 7 items at $3 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $9 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 8 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $9 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 3 (*) 7",
+      "Zeta-subtract discount: 31 (-) 9",
+      "Compute tax and Zeta-add: 21 (+) 1",
+      "Zeta-add shipping: 23 (+) 9",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "31",
+      "21",
+      "23",
+      "33",
+      "4.71"
+    ],
+    "ground_truth_final": "33",
+    "difficulty_metadata": {
+      "price_per_unit": 3,
+      "units": 7,
+      "tax_pct": 8,
+      "discount_flat": 9,
+      "shipping": 9,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_040",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 7).\nShow your work for each step.\n\nStep 1: Compute 36 mod 7\nStep 2: Apply Star-addition: result_of_step_1 (+) 24, then take mod 7\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 15 (standard multiplication), then take mod 7\nStep 4: Apply Star-addition: result_of_step_3 (+) 39, then take mod 7\nStep 5: Raise the result of Step 4 to the power 8 (standard), then take mod 7",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 36 mod 7",
+      "Star-add(1, 24) mod 7 = (2*1 + 24) mod 7",
+      "(5 * 15) mod 7",
+      "Star-add(5, 39) mod 7 = (2*5 + 39) mod 7",
+      "(0^8) mod 7"
+    ],
+    "ground_truth_steps": [
+      "1",
+      "5",
+      "5",
+      "0",
+      "0"
+    ],
+    "ground_truth_final": "0",
+    "difficulty_metadata": {
+      "modulus": 7,
+      "operands": [
+        36,
+        24,
+        15,
+        39,
+        8
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_041",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-2) (*) x + 7 (*) y + 5 (*) z = 88\nEquation 2: 5 (*) x + 6 (*) y + 6 (*) z = 82\nEquation 3: 7 (*) x + 7 (*) y + 5 (*) z = 79\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 6/-1\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 8/-1). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 6/-1",
+      "Eliminate x from eq2: new RHS = 65 - -6*78",
+      "Eliminate x from eq3: new RHS = 60 - -8*78",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-6",
+      "533",
+      "684",
+      "6",
+      "5"
+    ],
+    "ground_truth_final": "x = -2, y = 5, z = 6",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          -2,
+          7,
+          5
+        ],
+        [
+          5,
+          6,
+          6
+        ],
+        [
+          7,
+          7,
+          5
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          -1,
+          8,
+          6
+        ],
+        [
+          6,
+          7,
+          7
+        ],
+        [
+          8,
+          8,
+          6
+        ]
+      ],
+      "solution": [
+        -2,
+        5,
+        6
+      ],
+      "rhs": [
+        88,
+        82,
+        79
+      ],
+      "determinant": 126,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_042",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 29 items at $33 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $12 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 7 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $11 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 33 (*) 29",
+      "Zeta-subtract discount: 1019 (-) 12",
+      "Compute tax and Zeta-add: 1006 (+) 70",
+      "Zeta-add shipping: 1077 (+) 11",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1019",
+      "1006",
+      "1077",
+      "1089",
+      "37.55"
+    ],
+    "ground_truth_final": "1089",
+    "difficulty_metadata": {
+      "price_per_unit": 33,
+      "units": 29,
+      "tax_pct": 7,
+      "discount_flat": 12,
+      "shipping": 11,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_main_043",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 13).\nShow your work for each step.\n\nStep 1: Compute 17 mod 13\nStep 2: Apply Star-addition: result_of_step_1 (+) 21, then take mod 13\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 13 (standard multiplication), then take mod 13\nStep 4: Apply Star-addition: result_of_step_3 (+) 34, then take mod 13\nStep 5: Raise the result of Step 4 to the power 5 (standard), then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 17 mod 13",
+      "Star-add(4, 21) mod 13 = (2*4 + 21) mod 13",
+      "(3 * 13) mod 13",
+      "Star-add(0, 34) mod 13 = (2*0 + 34) mod 13",
+      "(8^5) mod 13"
+    ],
+    "ground_truth_steps": [
+      "4",
+      "3",
+      "0",
+      "8",
+      "8"
+    ],
+    "ground_truth_final": "8",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        17,
+        21,
+        13,
+        34,
+        5
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n"
+  },
+  {
+    "id": "l2_main_044",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 1 (*) x + (-5) (*) y + (-2) (*) z = -26\nEquation 2: 6 (*) x + 6 (*) y + (-2) (*) z = 81\nEquation 3: (-3) (*) x + (-4) (*) y + 4 (*) z = -1\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 7/2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -2/2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 7/2",
+      "Eliminate x from eq2: new RHS = 71 - 3.5*-20",
+      "Eliminate x from eq3: new RHS = 2 - -1*-20",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "3.5",
+      "141",
+      "-18",
+      "6",
+      "6"
+    ],
+    "ground_truth_final": "x = 5, y = 6, z = 6",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          1,
+          -5,
+          -2
+        ],
+        [
+          6,
+          6,
+          -2
+        ],
+        [
+          -3,
+          -4,
+          4
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          2,
+          -4,
+          -1
+        ],
+        [
+          7,
+          7,
+          -1
+        ],
+        [
+          -2,
+          -3,
+          5
+        ]
+      ],
+      "solution": [
+        5,
+        6,
+        6
+      ],
+      "rhs": [
+        -26,
+        81,
+        -1
+      ],
+      "determinant": 203,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n"
+  },
+  {
+    "id": "l2_decision_000",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "easy",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: (-3) (*) x + (-3) (*) y + (-2) (*) z = -12\nEquation 2: 2 (*) x + 1 (*) y + 2 (*) z = 9\nEquation 3: (-3) (*) x + (-2) (*) y + 2 (*) z = -16\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 3/-2\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -2/-2). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 3/-2",
+      "Eliminate x from eq2: new RHS = 4 - -1.5*-4",
+      "Eliminate x from eq3: new RHS = -13 - 1*-4",
+      "Solve reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-1.5",
+      "-2",
+      "-9",
+      "-2",
+      "-1"
+    ],
+    "ground_truth_final": "x = 4, y = -1, z = -2",
+    "difficulty_metadata": {
+      "zeta_coefficients": [
+        [
+          -3,
+          -3,
+          -2
+        ],
+        [
+          2,
+          1,
+          2
+        ],
+        [
+          -3,
+          -2,
+          2
+        ]
+      ],
+      "effective_coefficients": [
+        [
+          -2,
+          -2,
+          -1
+        ],
+        [
+          3,
+          2,
+          3
+        ],
+        [
+          -2,
+          -1,
+          3
+        ]
+      ],
+      "solution": [
+        4,
+        -1,
+        -2
+      ],
+      "rhs": [
+        -12,
+        9,
+        -16
+      ],
+      "determinant": 11,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n",
+    "is_solvable": true,
+    "payoff_correct": 5,
+    "payoff_wrong": -3,
+    "payoff_decline": 1
+  },
+  {
+    "id": "l2_decision_001",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "medium",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders 25 items at $49 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $23 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 9 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $22 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Zeta-multiply: 49 (*) 25",
+      "Zeta-subtract discount: 1299 (-) 23",
+      "Compute tax and Zeta-add: 1275 (+) 114",
+      "Zeta-add shipping: 1390 (+) 22",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "1299",
+      "1275",
+      "1390",
+      "1413",
+      "56.52"
+    ],
+    "ground_truth_final": "1413",
+    "difficulty_metadata": {
+      "price_per_unit": 49,
+      "units": 25,
+      "tax_pct": 9,
+      "discount_flat": 23,
+      "shipping": 22,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n",
+    "is_solvable": true,
+    "payoff_correct": 10,
+    "payoff_wrong": -15,
+    "payoff_decline": 2
+  },
+  {
+    "id": "l2_decision_002",
+    "novelty_level": 2,
+    "problem_type": "C",
+    "difficulty": "hard",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\nPerform the following chain of operations (all results taken mod 23).\nShow your work for each step.\n\nStep 1: Compute 80 mod 23\nStep 2: Apply Star-addition: result_of_step_1 (+) 98, then take mod 23\n  (Remember: a (+) b = 2*a + b, NOT a + b)\nStep 3: Multiply the result of Step 2 by 8 (standard multiplication), then take mod 23\nStep 4: Apply Star-addition: result_of_step_3 (+) 55, then take mod 23\nStep 5: Raise the result of Step 4 to the power 7 (standard), then take mod 23",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 80 mod 23",
+      "Star-add(11, 98) mod 23 = (2*11 + 98) mod 23",
+      "(5 * 8) mod 23",
+      "Star-add(17, 55) mod 23 = (2*17 + 55) mod 23",
+      "(20^7) mod 23"
+    ],
+    "ground_truth_steps": [
+      "11",
+      "5",
+      "17",
+      "20",
+      "21"
+    ],
+    "ground_truth_final": "21",
+    "difficulty_metadata": {
+      "modulus": 23,
+      "operands": [
+        80,
+        98,
+        8,
+        55,
+        7
+      ],
+      "operator_set": "beta"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Star-addition:       a (+) b = 2*a + b  (NOTE: NOT commutative)\n  Star-subtraction:    a (-) b = 2*a - b\n  Standard multiplication and division are unchanged.\n\nIMPORTANT: You MUST use Star-addition and Star-subtraction\nfor ALL addition/subtraction operations. Order matters!\n",
+    "is_solvable": true,
+    "payoff_correct": 20,
+    "payoff_wrong": -30,
+    "payoff_decline": 3
+  },
+  {
+    "id": "l2_decision_003",
+    "novelty_level": 2,
+    "problem_type": "A",
+    "difficulty": "unsolvable",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nSolve the following system of Zeta-equations for x, y, and z.\nEach term uses Zeta-multiplication: a (*) v = a*v + a + v.\nTo solve, first expand each Zeta-product to get a standard linear system,\nthen apply Gaussian elimination.\n\nEquation 1: 2 (*) x + 4 (*) y + 3 (*) z = 10\nEquation 2: 3 (*) x + (-4) (*) y + 2 (*) z = -27\nEquation 3: 10 (*) x + (-2) (*) y + 9 (*) z = -35\n\nSteps (after expanding to standard form):\nStep 1: Compute the multiplier m = eff_A[1][0]/eff_A[0][0] = 4/3\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = 11/3). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute multiplier m = 4/3",
+      "Eliminate x from eq2",
+      "Eliminate x from eq3",
+      "Solve reduced system for z",
+      "Back-substitute for y"
+    ],
+    "ground_truth_steps": [
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE"
+    ],
+    "ground_truth_final": "UNSOLVABLE",
+    "is_solvable": false,
+    "unsolvable_reason": "contradictory_system",
+    "difficulty_metadata": {
+      "shift": 3,
+      "alpha": 1,
+      "beta": 2,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n",
+    "payoff_correct": 10,
+    "payoff_wrong": -15,
+    "payoff_decline": 2
+  },
+  {
+    "id": "l2_decision_004",
+    "novelty_level": 2,
+    "problem_type": "B",
+    "difficulty": "unsolvable",
+    "problem_statement": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\nA customer orders several items at $20 each.\nUse Zeta-multiplication to compute the subtotal (price (*) quantity).\nThen apply a flat discount of $21 using Zeta-subtraction.\nCompute the tax amount as floor(after_discount * 6 / 100) using standard arithmetic,\nthen add it using Zeta-addition.\nAdd the shipping fee of $14 using Zeta-addition.\nFinally, compute the per-unit cost (total / quantity, standard division).\n\nCalculate each step, showing your work:\nStep 1: Compute subtotal using Zeta-multiplication\nStep 2: Apply discount using Zeta-subtraction\nStep 3: Compute tax and apply using Zeta-addition\nStep 4: Add shipping using Zeta-addition\nStep 5: Compute per-unit cost (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute subtotal using Zeta-multiplication",
+      "Apply discount using Zeta-subtraction",
+      "Compute tax and Zeta-add",
+      "Zeta-add shipping",
+      "Per-unit cost (total / quantity)"
+    ],
+    "ground_truth_steps": [
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE"
+    ],
+    "ground_truth_final": "UNSOLVABLE",
+    "is_solvable": false,
+    "unsolvable_reason": "missing_quantity",
+    "difficulty_metadata": {
+      "price_per_unit": 20,
+      "tax_pct": 6,
+      "discount_flat": 21,
+      "shipping": 14,
+      "operator_set": "alpha"
+    },
+    "operator_preamble": "CUSTOM OPERATOR DEFINITIONS (use these instead of standard arithmetic):\n  Zeta-addition:       a (+) b = a + b + 1\n  Zeta-subtraction:    a (-) b = a - b - 1\n  Zeta-multiplication: a (*) b = a * b + a + b\n  Standard division is unchanged.\n\nIMPORTANT: You MUST use these custom operators for EVERY arithmetic\noperation in your solution. Do NOT use standard +, -, or *.\n",
+    "payoff_correct": 10,
+    "payoff_wrong": -15,
+    "payoff_decline": 2
+  }
+]

@@ -35,22 +35,84 @@ Usage on Kaggle:
 import json
 import os
 import sys
+from pathlib import Path
 
 import kaggle_benchmarks as kbench
 
-# Add the prism_v2 package to path if running from dataset
-# On Kaggle, the dataset is mounted at /kaggle/input/<dataset-name>/
-PRISM_PATHS = [
-    "/kaggle/input/prism-v2-benchmark",
-    "/kaggle/input/prism-v2",
-    ".",
-]
-for path in PRISM_PATHS:
-    if os.path.isdir(os.path.join(path, "prism_v2")):
-        sys.path.insert(0, path)
-        break
+# Add the prism_v2 package to path if running from a Kaggle dataset.
+# We do not rely on a fixed dataset slug because Kaggle mount names vary.
+def _is_prism_package_dir(path: Path) -> bool:
+    """Return True if ``path`` itself looks like the prism_v2 package dir."""
+    required = [
+        path / "__init__.py",
+        path / "pipeline.py",
+        path / "problems",
+        path / "prompts",
+        path / "scoring",
+        path / "tasks",
+    ]
+    return all(p.exists() for p in required)
 
-from prism_v2.problems.generator import generate_all_problems
+
+def discover_prism_root() -> str:
+    """Find the directory to add to sys.path for importing ``prism_v2``."""
+    candidates = [
+        Path("."),
+        Path("/kaggle/input/prism-v2-benchmark"),
+        Path("/kaggle/input/prism-v2"),
+        Path("/kaggle/input/datasets"),
+    ]
+
+    kaggle_input = Path("/kaggle/input")
+    if kaggle_input.exists():
+        for dataset_dir in sorted(kaggle_input.iterdir()):
+            if dataset_dir.is_dir():
+                candidates.append(dataset_dir)
+
+    kaggle_datasets = Path("/kaggle/input/datasets")
+    if kaggle_datasets.exists():
+        for candidate in sorted(kaggle_datasets.rglob("*")):
+            if candidate.is_dir():
+                candidates.append(candidate)
+
+    seen = set()
+    for candidate in candidates:
+        candidate_str = str(candidate.resolve()) if candidate.exists() else str(candidate)
+        if candidate_str in seen:
+            continue
+        seen.add(candidate_str)
+
+        # Standard layout: dataset root contains prism_v2/
+        if (candidate / "prism_v2").is_dir():
+            return str(candidate)
+
+        # Flat layout: dataset root itself is the prism_v2 package contents
+        # In this case we need the parent on sys.path.
+        if _is_prism_package_dir(candidate):
+            return str(candidate.parent)
+
+        # One level deeper fallback for unusual dataset packaging.
+        for child in candidate.iterdir() if candidate.exists() and candidate.is_dir() else []:
+            if child.is_dir() and child.name == "prism_v2":
+                return str(candidate)
+            if child.is_dir() and _is_prism_package_dir(child):
+                return str(child.parent)
+
+    raise ModuleNotFoundError(
+        "Could not find the prism_v2 package under /kaggle/input, /kaggle/input/datasets, "
+        "or the current directory. "
+        "Attach the dataset containing the prism_v2 folder."
+    )
+
+
+PRISM_ROOT = discover_prism_root()
+sys.path.insert(0, PRISM_ROOT)
+
+from prism_v2.problems.generator import (
+    generate_all_problems,
+    sample_balanced_problem_subset,
+    summarize_problem_set,
+)
 from prism_v2.pipeline import PrismPipeline
 from prism_v2.tasks.task_01_prospective_calibration import compute_task_1
 from prism_v2.tasks.task_02_step_accuracy import compute_task_2
@@ -65,32 +127,61 @@ from prism_v2.tasks.task_06_novelty_robustness import compute_task_6
 
 
 # Try to load pre-generated problems; fall back to runtime generation
+TARGET_MAIN_PROBLEMS = int(os.getenv("PRISM_EVAL_MAIN_PROBLEMS", "10"))
+INCLUDE_FEEDBACK = os.getenv("PRISM_INCLUDE_FEEDBACK", "0").lower() in {
+    "1",
+    "true",
+    "yes",
+}
+
+
 def load_problems():
     """Load problem sets from JSON files or generate them."""
     problem_paths = [
-        "/kaggle/input/prism-v2-benchmark/prism_v2/problems",
-        "/kaggle/input/prism-v2/prism_v2/problems",
+        os.path.join(PRISM_ROOT, "prism_v2", "problems"),
+        os.path.join(PRISM_ROOT, "problems"),
         "prism_v2/problems",
     ]
 
     for base_path in problem_paths:
-        l1_path = os.path.join(base_path, "l1_problems.json")
-        l2_path = os.path.join(base_path, "l2_problems.json")
-        if os.path.exists(l1_path) and os.path.exists(l2_path):
-            with open(l1_path) as f:
-                l1 = json.load(f)
-            with open(l2_path) as f:
-                l2 = json.load(f)
-            print(f"Loaded problems from {base_path}")
-            return l1, l2
+        candidate_pairs = [
+            ("l1_problem_bank.json", "l2_problem_bank.json"),
+            ("l1_problems.json", "l2_problems.json"),
+        ]
+        for l1_name, l2_name in candidate_pairs:
+            l1_path = os.path.join(base_path, l1_name)
+            l2_path = os.path.join(base_path, l2_name)
+            if os.path.exists(l1_path) and os.path.exists(l2_path):
+                with open(l1_path) as f:
+                    l1 = json.load(f)
+                with open(l2_path) as f:
+                    l2 = json.load(f)
+                print(f"Loaded problems from {base_path} ({l1_name}, {l2_name})")
+                return l1, l2
 
     # Fall back to generation
     print("Generating problems at runtime...")
-    data = generate_all_problems(base_seed=42, num_main=10, num_feedback=5)
+    data = generate_all_problems(
+        base_seed=42,
+        num_main=max(TARGET_MAIN_PROBLEMS, 10),
+        num_feedback=0,
+    )
     return data["l1"], data["l2"]
 
 
 l1_problems, l2_problems = load_problems()
+l1_problems = sample_balanced_problem_subset(
+    l1_problems,
+    num_main=TARGET_MAIN_PROBLEMS,
+    seed=42,
+    include_feedback=INCLUDE_FEEDBACK,
+)
+l2_problems = sample_balanced_problem_subset(
+    l2_problems,
+    num_main=TARGET_MAIN_PROBLEMS,
+    seed=542,
+    include_feedback=INCLUDE_FEEDBACK,
+)
 l1_main = sum(
     1 for p in l1_problems if "feedback" not in p["id"] and "decision" not in p["id"]
 )
@@ -101,6 +192,8 @@ l2_main = sum(
 l2_dec = sum(1 for p in l2_problems if "decision" in p["id"])
 print(f"L1 problems: {len(l1_problems)} (main: {l1_main}, decision: {l1_dec})")
 print(f"L2 problems: {len(l2_problems)} (main: {l2_main}, decision: {l2_dec})")
+print(f"L1 summary: {summarize_problem_set(l1_problems)}")
+print(f"L2 summary: {summarize_problem_set(l2_problems)}")
 
 # ============================================================================
 # CELL 3: Initialize Pipeline

@@ -142,6 +142,7 @@ def validate_parsers():
     )
     from prism_v2.scoring.step_scorer import (
         extract_step_answers,
+        extract_final_answer,
         compare_answers,
         score_steps,
     )
@@ -214,6 +215,19 @@ def validate_parsers():
     check(compare_answers("5.001", "5", tolerance=0.01), "5.001 ~= 5 within 1%")
     check(not compare_answers("6", "5"), "6 != 5")
     check(compare_answers("1/2", "0.5"), "1/2 == 0.5")
+    check(
+        compare_answers("(1, 2, 3)", "x = 1, y = 2, z = 3"),
+        "Tuple final answer should match x/y/z assignments",
+    )
+    check(
+        compare_answers("x=1, y=2, z=3", "x = 1, y = 2, z = 3"),
+        "Variable assignment comparison should ignore formatting",
+    )
+    check(
+        extract_final_answer("REASONING: missing information\nUNSOLVABLE")
+        == "UNSOLVABLE",
+        "UNSOLVABLE should be extracted as a final answer",
+    )
 
     # score_steps
     results = score_steps(["5", "20", "13"], ["5", "20", "14"])
@@ -355,9 +369,16 @@ def validate_scoring():
     retro = compute_retro_accuracy(
         [["confident and correct", "uncertain and wrong"]],
         [[True, False]],
-        [[5, 2]],
     )
     check(abs(retro - 1.0) < 0.01, f"Perfect retro should be 1.0, got {retro}")
+    retro_independent = compute_retro_accuracy(
+        [["uncertain and correct", "confident but wrong"]],
+        [[True, False]],
+    )
+    check(
+        abs(retro_independent - 1.0) < 0.01,
+        f"Retrospective accuracy should not depend on D1 confidence, got {retro_independent}",
+    )
 
     # Location consistency
     loc = compute_location_consistency([1, 2, 3], [1, 2, 4])
@@ -438,6 +459,85 @@ def validate_pipeline_cache():
     )
 
     print(f"  Cache checks complete")
+
+
+def validate_pipeline_final_answer_scoring():
+    print("--- Pipeline final-answer scoring ---")
+    from contextlib import contextmanager
+
+    from prism_v2.pipeline import PrismPipeline
+    from prism_v2.problems.generator import generate_type_a_l1
+
+    class StubLLM:
+        def __init__(self, responses):
+            self._responses = list(responses)
+
+        def prompt(self, _prompt):
+            if not self._responses:
+                raise RuntimeError("StubLLM ran out of responses")
+            return self._responses.pop(0)
+
+    class StubChats:
+        @contextmanager
+        def new(self, *_args, **_kwargs):
+            yield
+
+    class StubKBench:
+        def __init__(self):
+            self.chats = StubChats()
+
+    problem = generate_type_a_l1("test_pipeline_final", "easy", seed=42).to_dict()
+    llm = StubLLM(
+        [
+            "\n".join(
+                [
+                    "WEAKEST STEP: 2",
+                    "Step 1: probably right",
+                    "Step 2: uncertain",
+                    "Step 3: uncertain",
+                    "Step 4: probably right",
+                    "Step 5: probably right",
+                    "BET: $60 on correct, $40 on incorrect",
+                ]
+            ),
+            "\n".join(
+                [
+                    f"Step 1: m = {problem['ground_truth_steps'][0]}",
+                    f"Step 2: new RHS = {problem['ground_truth_steps'][1]}",
+                    f"Step 3: new RHS = {problem['ground_truth_steps'][2]}",
+                    f"Step 4: z = {problem['ground_truth_steps'][3]}",
+                    f"Step 5: y = {problem['ground_truth_steps'][4]}",
+                    "FINAL ANSWER: x = 999, y = 5, z = 3",
+                ]
+            ),
+            "\n".join(
+                [
+                    "HARDEST STEP: 1",
+                    "Step 1: uncertain and correct",
+                    "Step 2: uncertain and correct",
+                    "Step 3: uncertain and correct",
+                    "Step 4: uncertain and correct",
+                    "Step 5: uncertain and correct",
+                    "COUNTERFACTUAL: I could have checked the final tuple more carefully.",
+                ]
+            ),
+        ]
+    )
+
+    pipeline = PrismPipeline([problem], [])
+    result = pipeline.run_problem(llm, problem, StubKBench())
+
+    check(
+        result.d2_step_correct == [True] * 5,
+        f"Steps should all be correct: {result.d2_step_correct}",
+    )
+    check(not result.d2_final_correct, "Final answer should be marked incorrect")
+    check(
+        not result.d2_overall_correct,
+        "Overall correctness should require final-answer correctness",
+    )
+
+    print("  Pipeline final-answer scoring complete")
 
 
 # ---------------------------------------------------------------------------
@@ -812,18 +912,34 @@ def validate_json_files():
     json_dir = os.path.join(os.path.dirname(__file__), "problems")
     l1_path = os.path.join(json_dir, "l1_problems.json")
     l2_path = os.path.join(json_dir, "l2_problems.json")
+    l1_bank_path = os.path.join(json_dir, "l1_problem_bank.json")
+    l2_bank_path = os.path.join(json_dir, "l2_problem_bank.json")
 
     check(os.path.exists(l1_path), f"l1_problems.json should exist at {l1_path}")
     check(os.path.exists(l2_path), f"l2_problems.json should exist at {l2_path}")
+    check(
+        os.path.exists(l1_bank_path),
+        f"l1_problem_bank.json should exist at {l1_bank_path}",
+    )
+    check(
+        os.path.exists(l2_bank_path),
+        f"l2_problem_bank.json should exist at {l2_bank_path}",
+    )
 
     with open(l1_path) as f:
         l1_data = json.load(f)
     with open(l2_path) as f:
         l2_data = json.load(f)
+    with open(l1_bank_path) as f:
+        l1_bank = json.load(f)
+    with open(l2_bank_path) as f:
+        l2_bank = json.load(f)
 
     # Expected counts: 10 main + 5 feedback + 5 decision = 20
     check(len(l1_data) == 20, f"L1 should have 20 problems, got {len(l1_data)}")
     check(len(l2_data) == 20, f"L2 should have 20 problems, got {len(l2_data)}")
+    check(len(l1_bank) == 50, f"L1 bank should have 50 problems, got {len(l1_bank)}")
+    check(len(l2_bank) == 50, f"L2 bank should have 50 problems, got {len(l2_bank)}")
 
     # Verify difficulty distribution for main problems
     for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
@@ -860,6 +976,18 @@ def validate_json_files():
                 "is_solvable" in dp,
                 f"{level_name} decision {dp['id']} missing is_solvable",
             )
+
+    for level_data, level_name in [(l1_bank, "L1 bank"), (l2_bank, "L2 bank")]:
+        main_problems = [p for p in level_data if "main" in p["id"]]
+        decision_problems = [p for p in level_data if "decision" in p["id"]]
+        check(
+            len(main_problems) == 45,
+            f"{level_name} should have 45 main problems, got {len(main_problems)}",
+        )
+        check(
+            len(decision_problems) == 5,
+            f"{level_name} should have 5 decision problems, got {len(decision_problems)}",
+        )
 
     # Spot-check: verify a Type-A L2 main problem's Zeta RHS
     l2_type_a = [p for p in l2_data if p["problem_type"] == "A"
@@ -928,6 +1056,57 @@ def validate_json_files():
     print(f"  JSON file validation complete")
 
 
+def validate_problem_bank_sampling():
+    print("--- Problem bank sampling ---")
+    from prism_v2.problems.generator import (
+        generate_problem_bank,
+        sample_balanced_problem_subset,
+        summarize_problem_set,
+    )
+
+    bank = generate_problem_bank(
+        novelty_level=1,
+        base_seed=123,
+        main_per_cell=3,
+        include_feedback=False,
+        include_decision=True,
+    )
+    summary = summarize_problem_set(bank)
+    check(summary["main"] == 27, f"Expected 27 main bank problems, got {summary['main']}")
+    check(
+        summary["decision"] == 5,
+        f"Expected 5 decision bank problems, got {summary['decision']}",
+    )
+    check(
+        all(count == 3 for count in summary["main_by_cell"].values()),
+        f"Each main cell should have 3 problems, got {summary['main_by_cell']}",
+    )
+
+    subset = sample_balanced_problem_subset(
+        bank,
+        num_main=10,
+        seed=123,
+        include_feedback=False,
+    )
+    subset_summary = summarize_problem_set(subset)
+    check(subset_summary["main"] == 10, f"Subset should keep 10 main problems, got {subset_summary['main']}")
+    check(
+        subset_summary["decision"] == 5,
+        f"Subset should retain all decision problems, got {subset_summary['decision']}",
+    )
+    selected_cell_counts = list(subset_summary["main_by_cell"].values())
+    check(
+        max(selected_cell_counts) - min(selected_cell_counts) <= 1,
+        f"Subset main-cell balance too uneven: {subset_summary['main_by_cell']}",
+    )
+    check(
+        all("feedback" not in p["id"] for p in subset),
+        "Subset should exclude feedback problems by default",
+    )
+
+    print("  Problem bank sampling complete")
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -944,12 +1123,14 @@ def main():
     validate_scoring()
     validate_difficulty_distribution()
     validate_pipeline_cache()
+    validate_pipeline_final_answer_scoring()
     validate_decision_generators()
     validate_decision_scorer()
     validate_metacognitive_control()
     validate_contradictory_systems()
     validate_zeta_math()
     validate_json_files()
+    validate_problem_bank_sampling()
 
     print("=" * 40)
     print(f"Results: {_pass} passed, {_fail} failed")

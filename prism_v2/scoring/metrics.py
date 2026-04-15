@@ -138,47 +138,35 @@ def compute_step_accuracy_score(
 def compute_retro_accuracy(
     retro_assessments: list[list[str]],
     step_correctness: list[list[bool]],
-    prospective_confidences: list[list[int]],
-    confidence_threshold: int = 4,
 ) -> float:
     """Compute retrospective self-assessment accuracy.
 
-    For each step, the "correct" retrospective label is determined by combining
-    ground truth correctness with prospective confidence:
-      - correct + high confidence -> "confident and correct"
-      - correct + low confidence  -> "uncertain and correct"
-      - wrong + high confidence   -> "confident but wrong"
-      - wrong + low confidence    -> "uncertain and wrong"
+    Task 3 should measure whether the model can correctly recognize, after the
+    fact, which steps it got right or wrong. We therefore score the reported
+    correctness component of each retrospective label and do not condition the
+    metric on the earlier prospective confidence report.
+
+    Accepted labels:
+      - actual correct  -> "confident and correct" OR "uncertain and correct"
+      - actual wrong    -> "confident but wrong" OR "uncertain and wrong"
 
     Args:
         retro_assessments: list of per-problem retrospective label lists
         step_correctness: list of per-problem step correctness lists
-        prospective_confidences: list of per-problem confidence vectors (1-5 scale)
-        confidence_threshold: values >= this are "confident", below are "uncertain"
 
     Returns:
-        Proportion of correct retrospective labels (0.0 to 1.0).
+        Proportion of steps where the reported correctness status matches the
+        actual outcome (0.0 to 1.0).
     """
     total = 0
     correct = 0
 
-    for retro, corr, conf in zip(
-        retro_assessments, step_correctness, prospective_confidences
-    ):
-        for r, c, p in zip(retro, corr, conf):
-            is_confident = p >= confidence_threshold
-            is_correct = c
-
-            if is_correct and is_confident:
-                expected = "confident and correct"
-            elif is_correct and not is_confident:
-                expected = "uncertain and correct"
-            elif not is_correct and is_confident:
-                expected = "confident but wrong"
-            else:
-                expected = "uncertain and wrong"
-
-            if r.lower().strip() == expected:
+    for retro, corr in zip(retro_assessments, step_correctness):
+        for r, c in zip(retro, corr):
+            label = r.lower().strip()
+            if c and label in {"confident and correct", "uncertain and correct"}:
+                correct += 1
+            elif (not c) and label in {"confident but wrong", "uncertain and wrong"}:
                 correct += 1
             total += 1
 

@@ -40,6 +40,7 @@ class ProblemResult:
     d2_overall_correct: bool = False
     d2_actual_weakest: Optional[int] = None
     d2_final_answer: str = ""
+    d2_final_correct: bool = False
     d2_solve_text: str = ""  # full reasoning trace for counterfactual judge
 
     # Dimension 3: Retrospective
@@ -142,6 +143,7 @@ class PrismPipeline:
         from prism_v2.scoring.step_scorer import (
             extract_step_answers,
             extract_final_answer,
+            compare_answers,
             score_steps,
         )
 
@@ -182,7 +184,13 @@ class PrismPipeline:
             result.d2_step_answers = extract_step_answers(d2_text, num_steps)
             result.d2_final_answer = extract_final_answer(d2_text)
             result.d2_step_correct = score_steps(result.d2_step_answers, gt_steps)
-            result.d2_overall_correct = all(result.d2_step_correct)
+            result.d2_final_correct = compare_answers(
+                result.d2_final_answer,
+                problem["ground_truth_final"],
+            )
+            result.d2_overall_correct = (
+                all(result.d2_step_correct) and result.d2_final_correct
+            )
 
             # Determine actual weakest step (first incorrect, or None)
             incorrect_steps = [

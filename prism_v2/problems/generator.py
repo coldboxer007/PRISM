@@ -17,8 +17,9 @@ Decision Problems (for Task 5 — Metacognitive Control):
 
 import json
 import random
+from collections import defaultdict
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Any, Optional
 from fractions import Fraction
 
 
@@ -45,6 +46,141 @@ class Problem:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+MAIN_PROBLEM_TYPES = ("A", "B", "C")
+MAIN_DIFFICULTIES = ("easy", "medium", "hard")
+
+
+def _problem_role(problem_id: str) -> str:
+    """Infer the logical role of a problem from its identifier."""
+    if "decision" in problem_id:
+        return "decision"
+    if "feedback" in problem_id:
+        return "feedback"
+    return "main"
+
+
+def _balanced_main_specs(
+    num_main: int,
+    seed: int,
+    problem_types: tuple[str, ...] = MAIN_PROBLEM_TYPES,
+    difficulties: tuple[str, ...] = MAIN_DIFFICULTIES,
+) -> list[tuple[str, str]]:
+    """Build a near-uniform list of (problem_type, difficulty) specs.
+
+    The previous round-robin logic over-weighted the first cell whenever
+    ``num_main`` was not divisible by 9. This version distributes the
+    remainder across the 3x3 grid based on a seed-derived offset, which
+    scales better for larger banks while keeping small benchmark slices
+    more balanced.
+    """
+    if num_main <= 0:
+        return []
+
+    cells = [(ptype, diff) for diff in difficulties for ptype in problem_types]
+    if not cells:
+        return []
+
+    counts = {cell: 0 for cell in cells}
+    base, remainder = divmod(num_main, len(cells))
+    for cell in cells:
+        counts[cell] = base
+
+    rng = random.Random(seed)
+    offset = rng.randrange(len(cells))
+    ordered_cells = cells[offset:] + cells[:offset]
+
+    for i in range(remainder):
+        counts[ordered_cells[i]] += 1
+
+    specs: list[tuple[str, str]] = []
+    while any(counts.values()):
+        for cell in ordered_cells:
+            if counts[cell] > 0:
+                specs.append(cell)
+                counts[cell] -= 1
+
+    return specs
+
+
+def summarize_problem_set(problems: list[dict | Problem]) -> dict[str, Any]:
+    """Return a compact summary of a problem bank or eval subset."""
+
+    normalized = [p.to_dict() if isinstance(p, Problem) else p for p in problems]
+    summary: dict[str, Any] = {
+        "total": len(normalized),
+        "main": 0,
+        "feedback": 0,
+        "decision": 0,
+        "by_type": {},
+        "by_difficulty": {},
+        "main_by_cell": {},
+    }
+
+    by_type: defaultdict[str, int] = defaultdict(int)
+    by_difficulty: defaultdict[str, int] = defaultdict(int)
+    main_by_cell: defaultdict[tuple[str, str], int] = defaultdict(int)
+
+    for problem in normalized:
+        role = _problem_role(problem["id"])
+        summary[role] += 1
+        by_type[problem["problem_type"]] += 1
+        by_difficulty[problem["difficulty"]] += 1
+        if role == "main":
+            main_by_cell[(problem["problem_type"], problem["difficulty"])] += 1
+
+    summary["by_type"] = dict(sorted(by_type.items()))
+    summary["by_difficulty"] = dict(sorted(by_difficulty.items()))
+    summary["main_by_cell"] = {
+        f"{ptype}:{difficulty}": count
+        for (ptype, difficulty), count in sorted(main_by_cell.items())
+    }
+    return summary
+
+
+def sample_balanced_problem_subset(
+    problems: list[dict | Problem],
+    num_main: int = 10,
+    seed: int = 42,
+    include_decision: bool = True,
+    include_feedback: bool = False,
+) -> list[dict]:
+    """Select a balanced evaluation subset from a larger problem bank.
+
+    This lets PRISM keep a much larger offline bank while still running a
+    smaller, cost-controlled online evaluation slice.
+    """
+    normalized = [p.to_dict() if isinstance(p, Problem) else p for p in problems]
+    rng = random.Random(seed)
+
+    mains = [p for p in normalized if _problem_role(p["id"]) == "main"]
+    decisions = [p for p in normalized if _problem_role(p["id"]) == "decision"]
+    feedback = [p for p in normalized if _problem_role(p["id"]) == "feedback"]
+
+    buckets: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
+    for problem in mains:
+        buckets[(problem["problem_type"], problem["difficulty"])].append(problem)
+
+    target_specs = _balanced_main_specs(min(num_main, len(mains)), seed)
+
+    selected_main: list[dict] = []
+    for cell in target_specs:
+        candidates = buckets.get(cell)
+        if not candidates:
+            continue
+        choice_index = rng.randrange(len(candidates))
+        selected_main.append(candidates.pop(choice_index))
+
+    selected = list(selected_main)
+    if include_feedback:
+        selected.extend(sorted(feedback, key=lambda p: p["id"]))
+    if include_decision:
+        selected.extend(sorted(decisions, key=lambda p: p["id"]))
+
+    role_order = {"main": 0, "feedback": 1, "decision": 2}
+    selected.sort(key=lambda p: (role_order[_problem_role(p["id"])], p["id"]))
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -1164,17 +1300,17 @@ def generate_problem_set(
     }
     generators = gen_l1 if novelty_level == 1 else gen_l2
     prefix = "l1" if novelty_level == 1 else "l2"
-    difficulties = ["easy", "medium", "hard"]
-    types = ["A", "B", "C"]
+    difficulties = list(MAIN_DIFFICULTIES)
+    types = list(MAIN_PROBLEM_TYPES)
 
     idx = 0
     # Main problems
-    # Use i//3 for difficulty so each "round" of 3 types shares a difficulty,
-    # and successive rounds advance the difficulty. This breaks the coupling
-    # that previously locked Type A = easy, Type B = medium, Type C = hard.
-    for i in range(num_main):
-        ptype = types[i % len(types)]
-        diff = difficulties[(i // len(types)) % len(difficulties)]
+    for ptype, diff in _balanced_main_specs(
+        num_main,
+        seed=base_seed,
+        problem_types=tuple(types),
+        difficulties=tuple(difficulties),
+    ):
         pid = f"{prefix}_main_{idx:03d}"
         problems.append(generators[ptype](pid, diff, base_seed + idx))
         idx += 1
@@ -1214,6 +1350,67 @@ def generate_all_problems(
     }
 
 
+def generate_problem_bank(
+    novelty_level: int = 1,
+    base_seed: int = 42,
+    main_per_cell: int = 5,
+    include_feedback: bool = False,
+    include_decision: bool = True,
+) -> list[dict]:
+    """Generate a larger, balanced bank for one novelty level.
+
+    ``main_per_cell=5`` yields 45 main problems (5 for each type/difficulty cell).
+    This is meant for offline bank creation; use ``sample_balanced_problem_subset()``
+    to down-select a smaller evaluation slice at runtime.
+    """
+    num_main = len(MAIN_PROBLEM_TYPES) * len(MAIN_DIFFICULTIES) * max(main_per_cell, 0)
+    num_feedback = len(MAIN_PROBLEM_TYPES) if include_feedback else 0
+
+    bank = [p.to_dict() for p in generate_problem_set(
+        novelty_level=novelty_level,
+        base_seed=base_seed,
+        num_main=num_main,
+        num_feedback=num_feedback,
+    )]
+
+    if include_decision:
+        bank.extend(
+            generate_decision_problems(
+                novelty_level=novelty_level,
+                base_seed=base_seed,
+            )
+        )
+
+    role_order = {"main": 0, "feedback": 1, "decision": 2}
+    bank.sort(key=lambda p: (role_order[_problem_role(p["id"])], p["id"]))
+    return bank
+
+
+def generate_all_problem_banks(
+    base_seed: int = 42,
+    main_per_cell: int = 5,
+    include_feedback: bool = False,
+    include_decision: bool = True,
+) -> dict[str, list[dict]]:
+    """Generate large balanced banks for both novelty levels."""
+    return {
+        "l1": generate_problem_bank(
+            novelty_level=1,
+            base_seed=base_seed,
+            main_per_cell=main_per_cell,
+            include_feedback=include_feedback,
+            include_decision=include_decision,
+        ),
+        "l2": generate_problem_bank(
+            novelty_level=2,
+            base_seed=base_seed + 500,
+            main_per_cell=main_per_cell,
+            include_feedback=include_feedback,
+            include_decision=include_decision,
+        ),
+    }
+
+
 def save_problems(output_dir: str = ".", base_seed: int = 42):
     """Generate all problems and save to JSON files."""
     import os
@@ -1229,6 +1426,32 @@ def save_problems(output_dir: str = ".", base_seed: int = 42):
     return l1_path, l2_path
 
 
+def save_problem_banks(
+    output_dir: str = ".",
+    base_seed: int = 42,
+    main_per_cell: int = 5,
+    include_feedback: bool = False,
+):
+    """Generate large problem banks and save them to JSON files."""
+    import os
+
+    os.makedirs(output_dir, exist_ok=True)
+    data = generate_all_problem_banks(
+        base_seed=base_seed,
+        main_per_cell=main_per_cell,
+        include_feedback=include_feedback,
+        include_decision=True,
+    )
+    l1_path = os.path.join(output_dir, "l1_problem_bank.json")
+    l2_path = os.path.join(output_dir, "l2_problem_bank.json")
+    with open(l1_path, "w") as f:
+        json.dump(data["l1"], f, indent=2)
+    with open(l2_path, "w") as f:
+        json.dump(data["l2"], f, indent=2)
+    return l1_path, l2_path
+
+
 if __name__ == "__main__":
     save_problems(".")
+    save_problem_banks(".")
     print("Problems generated successfully.")

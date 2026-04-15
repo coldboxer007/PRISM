@@ -28,3 +28,14 @@ Whether LLMs can accurately monitor their own reasoning **before** (D1),
 - `pipeline.py` — Orchestrator: runs D1→D2→D3 per problem, caches results
 - `notebook.py` — Kaggle Benchmarks notebook entry point
 - `validate.py` — Offline validation suite (`python -m prism_v2.validate`)
+
+## Larger Datasets Without Larger Run Cost
+
+PRISM now supports a two-stage dataset workflow:
+
+- Build a larger offline bank with `generate_problem_bank()` or `generate_all_problem_banks()`
+- Sample a smaller balanced eval slice with `sample_balanced_problem_subset()`
+- Inspect coverage with `summarize_problem_set()`
+
+This is the intended path if you want a much bigger dataset for robustness,
+while still keeping Kaggle runs quota-efficient.

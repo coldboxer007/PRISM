@@ -39,7 +39,7 @@ Six tasks derive scores from comparing D1, D2, and D3:
 |------|--------|--------------|-------|
 | T1 | AUROC | Can overall confidence predict correctness? | 0-1 (chance=0.5) |
 | T2 | Spearman rho | Do per-step confidences track step difficulty? | 0-1 (chance=0.5) |
-| T3 | Proportion | Can the model accurately self-assess after solving? | 0-1 |
+| T3 | Proportion | Can the model accurately recognize which steps it got right vs. wrong after solving? | 0-1 |
 | T4 | Weighted composite | Are before/after metacognitive reports coherent? | 0-1 |
 | T5 | Utility ratio | Does the model act on its self-knowledge (accept/decline)? | 0-1 |
 | T6 | L2/L1 ratio | Does metacognition survive novel operators? | 0-1 |
@@ -211,7 +211,7 @@ The notebook has 6 code cells:
 
 ### Execution Flow
 
-For each of the 20 main problems (10 L1 + 10 L2):
+For each of the active main-evaluation problems (default: 10 L1 + 10 L2):
 
 ```
 1. Create isolated chat: kbench.chats.new("prism_{id}", system_instructions=SYSTEM_PROMPT)
@@ -258,10 +258,10 @@ For 10 decision problems (5 L1 + 5 L2) used by Task 5:
 
 ### Task 3: Retrospective Self-Assessment
 
-- **Input:** Per-step self-assessment labels (D3) + actual correctness (D2) + prospective confidence (D1)
+- **Input:** Per-step self-assessment labels (D3) + actual correctness (D2)
 - **Expected labels:** "confident and correct", "uncertain and correct", "confident but wrong", "uncertain and wrong"
-- **Metric:** Proportion of steps with correct labels
-- **Interpretation:** Can the model accurately describe its own performance after the fact?
+- **Metric:** Proportion of steps where the reported correct/wrong status matches reality
+- **Interpretation:** Can the model accurately recognize its own step-level successes and failures after the fact?
 
 ### Task 4: Coherence (Composite)
 
@@ -318,10 +318,10 @@ Each type has easy, medium, and hard variants with increasing coefficient/operan
 
 ### Problem Counts
 
-- 10 main problems per novelty level (Types A/B/C across difficulties)
+- Default eval slice: 10 main problems per novelty level (sampled from a balanced bank)
 - 5 decision problems per novelty level (3 solvable + 2 unsolvable, used for Task 5)
-- 5 feedback problems per novelty level (reserved for future use; not currently executed)
-- Total: 40 problems stored (20 L1 + 20 L2), 30 actively used
+- Optional bank mode: 45 main problems per novelty level (5 per type/difficulty cell) plus 5 decision problems
+- Feedback problems are legacy/reserved and not used in the current Kaggle path
 
 ---
 

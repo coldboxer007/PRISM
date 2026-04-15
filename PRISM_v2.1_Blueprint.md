@@ -175,7 +175,7 @@ Given quota constraints ($50/day, $500/month), we need to be efficient:
 
 - Each main problem requires 3 API calls (prospective, solve, retrospective)
 - Each decision problem requires 1 API call (combined decision + solve)
-- Target: **10 main problems per novelty level** (Tasks 1-4, 6)
+- Default eval target: **10 main problems per novelty level** (Tasks 1-4, 6), sampled from a larger balanced bank
 - Target: **5 decision problems per novelty level** (Task 5)
 - Total per model: 10×3×2 + 5×1×2 = **70 API calls**
 
@@ -409,21 +409,18 @@ showing your work step by step.
 
 ### 6.3 Task 3: Retrospective Self-Assessment Accuracy
 
-**What it measures:** After being told which steps were right/wrong, can the model accurately categorize its own experience as "confident and correct," "confident but wrong," etc.?
+**What it measures:** After being told which steps were right/wrong, can the model accurately recognize which steps it got right vs. wrong?
 
 **Calculation:**
 1. For each step, we know:
    - The ground truth correctness (from D2)
-   - The prospective confidence (from D1, mapped to confident/uncertain using threshold: "definitely right" and "probably right" = confident; "uncertain", "probably wrong", "definitely wrong" = uncertain)
    - The retrospective self-assessment (from D3)
-2. The "correct" retrospective label is determined by combining ground truth correctness with prospective confidence:
-   - If Step was correct AND prospective confidence was high → ground truth = "confident and correct"
-   - If Step was correct AND prospective confidence was low → ground truth = "uncertain and correct"
-   - If Step was incorrect AND prospective confidence was high → ground truth = "confident but wrong"
-   - If Step was incorrect AND prospective confidence was low → ground truth = "uncertain and wrong"
-3. Score = proportion of steps where retrospective label matches the ground truth label
+2. A retrospective label is counted as correct if its reported correct/wrong status matches reality:
+   - Actual correct → either "confident and correct" or "uncertain and correct"
+   - Actual wrong → either "confident but wrong" or "uncertain and wrong"
+3. Score = proportion of steps where retrospective label reports the correct outcome status
 
-**Why this scoring works:** This is deliberately tricky. The model must remember what it said prospectively AND correctly assess what actually happened. Models that always say "confident and correct" will score poorly on steps they got wrong. Models that retroactively revise their confidence story will score poorly on the confidence dimension.
+**Why this scoring works:** It keeps Task 3 independent of the earlier D1 report. The benchmark still records retrospective confidence wording, but the core Task 3 score focuses on whether the model can accurately recognize its own step-level successes and failures after receiving outcome feedback.
 
 **Score for benchmark:** Proportion correct (0.0 to 1.0).
 

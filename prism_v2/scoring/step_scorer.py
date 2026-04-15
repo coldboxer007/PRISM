@@ -134,6 +134,15 @@ def extract_final_answer(response_text: str) -> str:
         answer = re.sub(r"\*\*", "", answer)
         return answer
 
+    # Explicit UNSOLVABLE / no-solution declaration
+    unsolvable = re.search(
+        r"\b(?:UNSOLVABLE|NO\s+SOLUTION|INCONSISTENT|CANNOT\s+BE\s+SOLVED)\b",
+        response_text,
+        re.IGNORECASE,
+    )
+    if unsolvable:
+        return "UNSOLVABLE"
+
     # Fallback: look for boxed answer anywhere
     boxed = re.findall(r"\\boxed\{([^}]+)\}", response_text)
     if boxed:
@@ -172,6 +181,27 @@ def _normalize_number(s: str) -> Optional[float]:
         return None
 
 
+def _extract_variable_assignments(s: str) -> dict[str, float]:
+    """Extract assignments like ``x = 1, y = 2, z = 3``."""
+    matches = re.findall(r"\b([xyz])\s*=\s*([-\d.,/]+)", s, re.IGNORECASE)
+    assignments: dict[str, float] = {}
+    for var, raw_value in matches:
+        value = _normalize_number(raw_value)
+        if value is not None:
+            assignments[var.lower()] = value
+    return assignments
+
+
+def _extract_number_sequence(s: str) -> list[float]:
+    """Extract a loose ordered number sequence from a string."""
+    values = []
+    for raw_value in re.findall(r"[-]?\d+(?:[.,/]\d+)*", s):
+        value = _normalize_number(raw_value)
+        if value is not None:
+            values.append(value)
+    return values
+
+
 def compare_answers(
     extracted: str,
     ground_truth: str,
@@ -192,6 +222,35 @@ def compare_answers(
     # Direct string match
     if extracted_clean == truth_clean:
         return True
+
+    # Structured variable assignments, e.g. x=1, y=2, z=3
+    extracted_assignments = _extract_variable_assignments(extracted_clean)
+    truth_assignments = _extract_variable_assignments(truth_clean)
+    if truth_assignments:
+        if extracted_assignments:
+            truth_keys = sorted(truth_assignments.keys())
+            if sorted(extracted_assignments.keys()) == truth_keys:
+                return all(
+                    compare_answers(
+                        str(extracted_assignments[key]),
+                        str(truth_assignments[key]),
+                        tolerance,
+                    )
+                    for key in truth_keys
+                )
+
+        # Accept tuple-style final answers if the truth specifies x, y, z.
+        if sorted(truth_assignments.keys()) == ["x", "y", "z"]:
+            extracted_sequence = _extract_number_sequence(extracted_clean)
+            if len(extracted_sequence) >= 3:
+                return all(
+                    compare_answers(
+                        str(extracted_sequence[i]),
+                        str(truth_assignments[key]),
+                        tolerance,
+                    )
+                    for i, key in enumerate(["x", "y", "z"])
+                )
 
     # Try numeric comparison
     ext_num = _normalize_number(extracted)
