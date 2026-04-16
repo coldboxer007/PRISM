@@ -14,6 +14,8 @@ Three sub-scores:
 Score: Weighted composite (0.0 to 1.0)
 """
 
+import re
+
 
 def _compute_counterfactual_score(
     counterfactuals: list[str],
@@ -39,9 +41,9 @@ def _compute_counterfactual_score(
             continue
 
         response_text = (
-            f"Problem: {problem[:200]}...\n"
-            f"Model's solution approach: {solve[:200]}...\n"
-            f"Counterfactual stated by model: {cf}"
+            f"Problem: {_sanitize_for_judge(problem, 240)}\n"
+            f"Model's solution approach: {_sanitize_for_judge(solve, 320)}\n"
+            f"Counterfactual stated by model: {_sanitize_for_judge(cf, 240)}"
         )
 
         try:
@@ -68,6 +70,22 @@ def _compute_counterfactual_score(
             scores.append(0.0)
 
     return sum(scores) / len(scores) if scores else 0.0
+
+
+def _sanitize_for_judge(text: str, limit: int) -> str:
+    """Convert rich model output into JSON-safe plain text for the judge."""
+    cleaned = text or ""
+    cleaned = cleaned.replace("\u2212", "-").replace("−", "-").replace("–", "-")
+    cleaned = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"\1/\2", cleaned)
+    cleaned = re.sub(r"\\pmod\{([^{}]+)\}", r" mod \1", cleaned)
+    cleaned = re.sub(r"\\(?:boxed|text|mathrm|operatorname)\{", "", cleaned)
+    cleaned = cleaned.replace("\\", " ")
+    cleaned = cleaned.replace("$", " ")
+    cleaned = cleaned.replace("{", " ").replace("}", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned) > limit:
+        return cleaned[: limit - 3].rstrip() + "..."
+    return cleaned
 
 
 def compute_task_4(

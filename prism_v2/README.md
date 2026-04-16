@@ -25,7 +25,7 @@ Whether LLMs can accurately monitor their own reasoning **before** (D1),
 - `prompts/` — Prompt templates for D1, D2, D3, and decision problems
 - `scoring/` — Parsers, step scorer, and metrics engine
 - `tasks/` — One module per task; each exports a `compute_task_N()` function
-- `pipeline.py` — Orchestrator: runs D1→D2→D3 per problem, caches results
+- `pipeline.py` — Orchestrator: runs D1→D2→D3a→D3b per problem, caches results
 - `notebook.py` — Kaggle Benchmarks notebook entry point
 - `validate.py` — Offline validation suite (`python -m prism_v2.validate`)
 
@@ -39,3 +39,13 @@ PRISM now supports a two-stage dataset workflow:
 
 This is the intended path if you want a much bigger dataset for robustness,
 while still keeping Kaggle runs quota-efficient.
+
+## Kaggle Execution Notes
+
+- Keep the benchmark wired to `kbench.llm` in the notebook; Kaggle swaps models
+  at evaluation time from the task page.
+- Use Kaggle's "Evaluate More Models" action after building the task if you want
+  a multi-model leaderboard.
+- Kaggle Benchmarks supports multimodal inputs, but PRISM v2.1 currently targets
+  text-only metacognitive reasoning. A multimodal extension should be added as a
+  new problem family, not by changing the existing task contract.

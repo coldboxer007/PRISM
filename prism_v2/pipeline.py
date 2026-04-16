@@ -1,8 +1,12 @@
 """
 PRISM v2.1 Pipeline Orchestrator
 
-Runs the full D1→D2→D3 metacognitive assessment pipeline for each problem.
+Runs the full D1→D2→D3a→D3b metacognitive assessment pipeline for each problem.
 Implements result caching so multiple tasks can share a single pipeline run.
+
+D3a is a *blind* retrospective turn: the model assesses its own step correctness
+BEFORE seeing results.  D3b is the *informed* turn: results are revealed, and the
+model identifies the hardest step and provides counterfactual analysis.
 
 Usage in Kaggle notebook:
     pipeline = PrismPipeline(problems_l1, problems_l2)
@@ -43,9 +47,11 @@ class ProblemResult:
     d2_final_correct: bool = False
     d2_solve_text: str = ""  # full reasoning trace for counterfactual judge
 
-    # Dimension 3: Retrospective
+    # Dimension 3a: Blind Retrospective (before results revealed)
+    d3a_blind_assessment: list[str] = field(default_factory=list)
+
+    # Dimension 3b: Informed Retrospective (after results revealed)
     d3_reported_hardest: Optional[int] = None
-    d3_self_assessment: list[str] = field(default_factory=list)
     d3_counterfactual: str = ""
 
     # Metadata
@@ -100,17 +106,9 @@ class PrismPipeline:
         self.l2_problems = l2_problems
 
         # Separate main vs decision problems
-        self.l1_main = [
-            p
-            for p in l1_problems
-            if "feedback" not in p["id"] and "decision" not in p["id"]
-        ]
+        self.l1_main = [p for p in l1_problems if "decision" not in p["id"]]
         self.l1_decision = [p for p in l1_problems if "decision" in p["id"]]
-        self.l2_main = [
-            p
-            for p in l2_problems
-            if "feedback" not in p["id"] and "decision" not in p["id"]
-        ]
+        self.l2_main = [p for p in l2_problems if "decision" not in p["id"]]
         self.l2_decision = [p for p in l2_problems if "decision" in p["id"]]
 
         # Result caches
@@ -128,16 +126,22 @@ class PrismPipeline:
     # ----- Core pipeline execution -----
 
     def run_problem(self, llm, problem: dict, kbench) -> ProblemResult:
-        """Run the full D1→D2→D3 pipeline for a single problem.
+        """Run the full D1→D2→D3a→D3b pipeline for a single problem.
 
         Uses kbench chat management for multi-turn conversation.
+        D3a is a blind self-assessment (before results); D3b reveals
+        results and asks for hardest step + counterfactual.
         """
         from prism_v2.prompts.system import SYSTEM_PROMPT
         from prism_v2.prompts.prospective import build_prospective_prompt
         from prism_v2.prompts.solve import build_solve_prompt
-        from prism_v2.prompts.retrospective import build_retrospective_prompt
+        from prism_v2.prompts.retrospective import (
+            build_blind_retrospective_prompt,
+            build_informed_retrospective_prompt,
+        )
         from prism_v2.scoring.confidence_parser import (
             parse_prospective,
+            parse_blind_retrospective,
             parse_retrospective,
         )
         from prism_v2.scoring.step_scorer import (
@@ -198,18 +202,27 @@ class PrismPipeline:
             ]
             result.d2_actual_weakest = incorrect_steps[0] if incorrect_steps else None
 
-            # --- Dimension 3: Retrospective ---
-            d3_prompt = build_retrospective_prompt(
+            # --- Dimension 3a: Blind Retrospective ---
+            # Model assesses its own steps BEFORE seeing results.
+            d3a_prompt = build_blind_retrospective_prompt(num_steps)
+            d3a_response = llm.prompt(d3a_prompt)
+
+            d3a_report = parse_blind_retrospective(str(d3a_response), num_steps)
+            result.d3a_blind_assessment = d3a_report.self_assessment
+            result.parse_errors.extend(d3a_report.parse_errors)
+
+            # --- Dimension 3b: Informed Retrospective ---
+            # Reveal results, ask for hardest step + counterfactual.
+            d3b_prompt = build_informed_retrospective_prompt(
                 result.d2_step_correct,
                 result.d2_overall_correct,
             )
-            d3_response = llm.prompt(d3_prompt)
+            d3b_response = llm.prompt(d3b_prompt)
 
-            d3_report = parse_retrospective(str(d3_response), num_steps)
-            result.d3_reported_hardest = d3_report.reported_hardest_step
-            result.d3_self_assessment = d3_report.self_assessment
-            result.d3_counterfactual = d3_report.counterfactual_text
-            result.parse_errors.extend(d3_report.parse_errors)
+            d3b_report = parse_retrospective(str(d3b_response), num_steps)
+            result.d3_reported_hardest = d3b_report.reported_hardest_step
+            result.d3_counterfactual = d3b_report.counterfactual_text
+            result.parse_errors.extend(d3b_report.parse_errors)
 
         return result
 
@@ -281,8 +294,7 @@ class PrismPipeline:
         """Run the complete pipeline for all problems (both novelty levels).
 
         This is the main entry point. Populates the result caches.
-        Runs main problems (D1→D2→D3) and decision problems (Task 5).
-        Feedback rounds are no longer executed (replaced by decision problems).
+        Runs main problems (D1→D2→D3a→D3b) and decision problems (Task 5).
         """
         if self._has_run:
             return  # Already ran; use cached results
@@ -341,21 +353,30 @@ class PrismPipeline:
         return rhos
 
     def get_retro_data(self, novelty_level: int = 1) -> tuple:
-        """Get data needed for Task 3 (retrospective accuracy)."""
+        """Get data needed for Task 3 (retrospective accuracy).
+
+        Returns blind (D3a) assessments — the model's self-assessment
+        BEFORE seeing which steps were correct/incorrect.
+        """
         results = self.get_results(novelty_level)
-        retro_assessments = [r.d3_self_assessment for r in results]
+        blind_assessments = [r.d3a_blind_assessment for r in results]
         step_correctness = [r.d2_step_correct for r in results]
         prospective_confidences = [r.d1_confidence_vector for r in results]
-        return retro_assessments, step_correctness, prospective_confidences
+        return blind_assessments, step_correctness, prospective_confidences
 
     def get_coherence_data(self, novelty_level: int = 1) -> dict:
-        """Get data needed for Task 4 (coherence)."""
+        """Get data needed for Task 4 (coherence).
+
+        Sub-score A uses D3b reported_hardest (informed — model knows results).
+        Sub-score B uses D3a blind_assessment (model's own judgment, no leaking).
+        Sub-score C uses D3b counterfactual (informed — needs result context).
+        """
         results = self.get_results(novelty_level)
         return {
             "predicted_weakest": [r.d1_predicted_weakest for r in results],
             "reported_hardest": [r.d3_reported_hardest for r in results],
             "prospective_vectors": [r.d1_confidence_vector for r in results],
-            "retro_assessments": [r.d3_self_assessment for r in results],
+            "retro_assessments": [r.d3a_blind_assessment for r in results],
             "counterfactuals": [r.d3_counterfactual for r in results],
             "problem_statements": [
                 next(

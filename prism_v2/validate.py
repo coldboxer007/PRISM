@@ -73,6 +73,10 @@ def validate_ground_truth():
         float(p.ground_truth_steps[4]) == expected_per_unit,
         f"Type-B L1 per-unit: got {p.ground_truth_steps[4]}, expected {expected_per_unit}",
     )
+    check(
+        float(p.ground_truth_final) == expected_per_unit,
+        f"Type-B L1 final should be per-unit cost, got {p.ground_truth_final}",
+    )
 
     # Type-C L1: modular chain
     p = generate_type_c_l1("test_c", "medium", seed=42)
@@ -110,6 +114,11 @@ def validate_ground_truth():
         p.ground_truth_steps[0] == str(subtotal),
         f"Type-B L2 zeta subtotal: got {p.ground_truth_steps[0]}, expected {subtotal}",
     )
+    expected_per_unit_l2 = round(float(p.ground_truth_steps[3]) / units, 2)
+    check(
+        float(p.ground_truth_final) == expected_per_unit_l2,
+        f"Type-B L2 final should be per-unit cost, got {p.ground_truth_final}",
+    )
 
     # Type-C L2: verify Star-add math
     p = generate_type_c_l2("test_c2", "easy", seed=42)
@@ -138,6 +147,7 @@ def validate_parsers():
     print("--- Parser extraction ---")
     from prism_v2.scoring.confidence_parser import (
         parse_prospective,
+        parse_blind_retrospective,
         parse_retrospective,
     )
     from prism_v2.scoring.step_scorer import (
@@ -171,35 +181,113 @@ def validate_parsers():
         len(d1.parse_errors) == 0, f"D1 should have no parse errors: {d1.parse_errors}"
     )
 
-    # Retrospective parser
-    sample_d3 = (
-        "1. HARDEST STEP: 2\n"
-        "2. SELF-ASSESSMENT:\n"
+    # Blind retrospective parser (D3a)
+    sample_d3a = (
         "Step 1: confident and correct\n"
         "Step 2: uncertain and wrong\n"
         "Step 3: confident and correct\n"
         "Step 4: uncertain and correct\n"
         "Step 5: confident but wrong\n"
-        "3. COUNTERFACTUAL: I could have used substitution instead of elimination."
     )
-    d3 = parse_retrospective(sample_d3, 5)
-    check(d3.reported_hardest_step == 2, f"D3 hardest step: {d3.reported_hardest_step}")
+    d3a = parse_blind_retrospective(sample_d3a, 5)
     check(
-        d3.self_assessment[0] == "confident and correct",
-        f"D3 assessment[0]: {d3.self_assessment[0]}",
+        d3a.self_assessment[0] == "confident and correct",
+        f"D3a assessment[0]: {d3a.self_assessment[0]}",
     )
     check(
-        d3.self_assessment[1] == "uncertain and wrong",
-        f"D3 assessment[1]: {d3.self_assessment[1]}",
+        d3a.self_assessment[1] == "uncertain and wrong",
+        f"D3a assessment[1]: {d3a.self_assessment[1]}",
     )
-    check(len(d3.counterfactual_text) > 0, "D3 counterfactual should be non-empty")
+    check(
+        len(d3a.parse_errors) == 0,
+        f"D3a should have no parse errors: {d3a.parse_errors}",
+    )
 
-    # Empty counterfactual
-    sample_no_cf = "1. HARDEST STEP: 1\n2. Step 1: uncertain and wrong\n"
-    d3_no_cf = parse_retrospective(sample_no_cf, 1)
+    # Blind retrospective: all defaulted (no labels found)
+    d3a_empty = parse_blind_retrospective("I think I did well.", 3)
     check(
-        d3_no_cf.counterfactual_text == "",
-        "D3 without COUNTERFACTUAL header should be empty",
+        len(d3a_empty.parse_errors) > 0,
+        "D3a with no labels should report parse error",
+    )
+
+    # Informed retrospective parser (D3b)
+    sample_d3b = (
+        "1. HARDEST STEP: 2\n"
+        "2. COUNTERFACTUAL: I could have used substitution instead of elimination."
+    )
+    d3b = parse_retrospective(sample_d3b, 5)
+    check(
+        d3b.reported_hardest_step == 2, f"D3b hardest step: {d3b.reported_hardest_step}"
+    )
+    check(len(d3b.counterfactual_text) > 0, "D3b counterfactual should be non-empty")
+
+    # Empty counterfactual (D3b)
+    sample_no_cf = "1. HARDEST STEP: 1\n"
+    d3b_no_cf = parse_retrospective(sample_no_cf, 1)
+    check(
+        d3b_no_cf.counterfactual_text == "",
+        "D3b without COUNTERFACTUAL header should be empty",
+    )
+
+    # GPT-5.4-style prospective: numbered list without header text
+    sample_d1_gpt = (
+        "1. 3\n\n"
+        "2.\n"
+        "Step 1: probably right\n"
+        "Step 2: definitely right\n"
+        "Step 3: probably wrong\n"
+        "Step 4: uncertain\n"
+        "Step 5: definitely right\n\n"
+        "3. CORRECT: $70\nINCORRECT: $30"
+    )
+    d1_gpt = parse_prospective(sample_d1_gpt, 5)
+    check(
+        d1_gpt.predicted_weakest_step == 3,
+        f"GPT-5.4 D1 weakest step should be 3, got {d1_gpt.predicted_weakest_step}",
+    )
+    check(
+        d1_gpt.confidence_vector == [4, 5, 2, 3, 5],
+        f"GPT-5.4 D1 confidence vector: {d1_gpt.confidence_vector}",
+    )
+    check(
+        d1_gpt.bet_fraction_correct is not None
+        and abs(d1_gpt.bet_fraction_correct - 0.7) < 0.01,
+        f"GPT-5.4 D1 bet fraction: {d1_gpt.bet_fraction_correct}",
+    )
+
+    # GPT-5.4-style D3b: numbered list without header text
+    sample_d3b_gpt = (
+        "1. 4\n\n"
+        "2. I could have checked the intermediate values more carefully "
+        "before proceeding to the next step."
+    )
+    d3b_gpt = parse_retrospective(sample_d3b_gpt, 5)
+    check(
+        d3b_gpt.reported_hardest_step == 4,
+        f"GPT-5.4 D3b hardest step should be 4, got {d3b_gpt.reported_hardest_step}",
+    )
+    check(
+        len(d3b_gpt.counterfactual_text) > 0,
+        "GPT-5.4 D3b counterfactual should be non-empty",
+    )
+
+    # GPT-5.4-style D3b with 3 sections (labels leaked into section 2)
+    sample_d3b_gpt3 = (
+        "1. 2\n\n"
+        "2.\n"
+        "Step 1: confident and correct\n"
+        "Step 2: uncertain and wrong\n"
+        "Step 3: confident and correct\n\n"
+        "3. I should have simplified the expression before applying the operator."
+    )
+    d3b_gpt3 = parse_retrospective(sample_d3b_gpt3, 3)
+    check(
+        d3b_gpt3.reported_hardest_step == 2,
+        f"GPT-5.4 D3b (3-section) hardest step should be 2, got {d3b_gpt3.reported_hardest_step}",
+    )
+    check(
+        "simplified" in d3b_gpt3.counterfactual_text,
+        f"GPT-5.4 D3b (3-section) counterfactual should come from section 3, got: {d3b_gpt3.counterfactual_text}",
     )
 
     # Step scorer
@@ -227,6 +315,65 @@ def validate_parsers():
         extract_final_answer("REASONING: missing information\nUNSOLVABLE")
         == "UNSOLVABLE",
         "UNSOLVABLE should be extracted as a final answer",
+    )
+
+    kaggle_currency = (
+        "Step 1: Compute the subtotal\n"
+        "Subtotal = 21 * $148\n"
+        "$\\boxed{\\text{Subtotal} = $3108}$\n"
+        "Step 2: Compute the discount amount and price after discount\n"
+        "Discount amount = $3108 * 0.135 = $419.58\n"
+        "Price after discount = $3108 - $419.58 = $2688.42\n"
+        "$\\boxed{\\text{Price after discount} = $2688.42}$\n"
+        "Step 3: Compute the tax amount and price after tax\n"
+        "Price after tax = $2688.42 + $369.66 = $3058.08\n"
+        "$\\boxed{\\text{Price after tax} = $3058.08}$\n"
+        "Step 4: Compute the total including shipping\n"
+        "Total including shipping = $3058.08 + $25 = $3083.08\n"
+        "$\\boxed{\\text{Total including shipping} = $3083.08}$\n"
+        "Step 5: Compute the cost per unit (total / quantity)\n"
+        "Cost per unit = $3083.08 / 21 = $146.81\n"
+        "$\\boxed{\\text{Cost per unit} = $146.81}$\n"
+        "FINAL ANSWER:\n"
+        "The final answer is $\\boxed{$146.81}$\n"
+    )
+    currency_answers = extract_step_answers(kaggle_currency, 5)
+    check(
+        currency_answers == ["3108", "2688.42", "3058.08", "3083.08", "146.81"],
+        f"Currency parsing should keep numeric answers, got {currency_answers}",
+    )
+    check(
+        extract_final_answer(kaggle_currency) == "146.81",
+        f"Currency final answer parse failed: {extract_final_answer(kaggle_currency)}",
+    )
+
+    kaggle_elimination = (
+        "Step 1: Compute the multiplier\n"
+        "$\\boxed{m_{21} = 1}$\n"
+        "Step 2: Eliminate x from equation 2. State the new RHS.\n"
+        "New RHS = 8 - 1 * 12 = -4\n"
+        "$\\boxed{\\text{New RHS for Equation 2 is -4}}$\n"
+        "Step 3: Eliminate x from equation 3. State the new RHS.\n"
+        "New RHS = 12 - (-1) * 12 = 24\n"
+        "$\\boxed{\\text{New RHS for Equation 3 is 24}}$\n"
+        "Step 4: Solve the reduced 2x2 system for z.\n"
+        "$\\boxed{z = 0}$\n"
+        "Step 5: Back-substitute z to find y.\n"
+        "$\\boxed{y = -4}$\n"
+        "FINAL ANSWER:\n"
+        "x = 0\ny = -4\nz = 0\n"
+    )
+    elimination_answers = extract_step_answers(kaggle_elimination, 5)
+    check(
+        elimination_answers == ["1", "-4", "24", "0", "-4"],
+        f"Elimination parsing should extract numeric RHS values, got {elimination_answers}",
+    )
+    check(
+        compare_answers(
+            extract_final_answer(kaggle_elimination),
+            "x = 0, y = -4, z = 0",
+        ),
+        f"Final assignment parsing failed: {extract_final_answer(kaggle_elimination)}",
     )
 
     # score_steps
@@ -400,6 +547,30 @@ def validate_scoring():
     print(f"  Scoring checks complete")
 
 
+def validate_judge_sanitization():
+    print("--- Judge sanitization ---")
+    from prism_v2.tasks.task_04_coherence import _sanitize_for_judge
+
+    cleaned = _sanitize_for_judge(
+        r"Counterfactual: use $\boxed{\frac{3}{4}}$ and compare with $92 \pmod{23}$.",
+        200,
+    )
+    check(
+        "\\" not in cleaned, f"Judge sanitizer should remove backslashes, got {cleaned}"
+    )
+    check(
+        "$" not in cleaned, f"Judge sanitizer should remove dollar signs, got {cleaned}"
+    )
+    check(
+        "3/4" in cleaned, f"Judge sanitizer should preserve math content, got {cleaned}"
+    )
+    check(
+        "mod 23" in cleaned,
+        f"Judge sanitizer should normalize pmod text, got {cleaned}",
+    )
+    print("  Judge sanitization checks complete")
+
+
 # ---------------------------------------------------------------------------
 # 4. Difficulty distribution
 # ---------------------------------------------------------------------------
@@ -409,9 +580,8 @@ def validate_difficulty_distribution():
     print("--- Difficulty distribution ---")
     from prism_v2.problems.generator import generate_problem_set
 
-    problems = generate_problem_set(novelty_level=1, base_seed=42, num_main=10)
-    # Filter to main problems only
-    main = [p for p in problems if "feedback" not in p.id]
+    problems = generate_problem_set(novelty_level=1, base_seed=42, num_main=20)
+    main = list(problems)  # All problems are main problems now
 
     types_seen = set(p.problem_type for p in main)
     diffs_seen = set(p.difficulty for p in main)
@@ -489,6 +659,7 @@ def validate_pipeline_final_answer_scoring():
     problem = generate_type_a_l1("test_pipeline_final", "easy", seed=42).to_dict()
     llm = StubLLM(
         [
+            # D1: Prospective
             "\n".join(
                 [
                     "WEAKEST STEP: 2",
@@ -500,6 +671,7 @@ def validate_pipeline_final_answer_scoring():
                     "BET: $60 on correct, $40 on incorrect",
                 ]
             ),
+            # D2: Performance (solve)
             "\n".join(
                 [
                     f"Step 1: m = {problem['ground_truth_steps'][0]}",
@@ -510,15 +682,21 @@ def validate_pipeline_final_answer_scoring():
                     "FINAL ANSWER: x = 999, y = 5, z = 3",
                 ]
             ),
+            # D3a: Blind retrospective (before results)
             "\n".join(
                 [
-                    "HARDEST STEP: 1",
                     "Step 1: uncertain and correct",
                     "Step 2: uncertain and correct",
                     "Step 3: uncertain and correct",
                     "Step 4: uncertain and correct",
                     "Step 5: uncertain and correct",
-                    "COUNTERFACTUAL: I could have checked the final tuple more carefully.",
+                ]
+            ),
+            # D3b: Informed retrospective (after results)
+            "\n".join(
+                [
+                    "1. HARDEST STEP: 1",
+                    "2. COUNTERFACTUAL: I could have checked the final tuple more carefully.",
                 ]
             ),
         ]
@@ -558,13 +736,13 @@ def validate_decision_generators():
 
     # L1 decision problems
     l1_dec = generate_decision_problems(novelty_level=1, base_seed=42)
-    check(len(l1_dec) == 5, f"L1 should have 5 decision problems, got {len(l1_dec)}")
+    check(len(l1_dec) == 10, f"L1 should have 10 decision problems, got {len(l1_dec)}")
 
-    # 3 solvable + 2 unsolvable
+    # 6 solvable + 4 unsolvable
     solvable = [p for p in l1_dec if p.get("is_solvable", True)]
     unsolvable = [p for p in l1_dec if not p.get("is_solvable", True)]
-    check(len(solvable) == 3, f"L1 should have 3 solvable, got {len(solvable)}")
-    check(len(unsolvable) == 2, f"L1 should have 2 unsolvable, got {len(unsolvable)}")
+    check(len(solvable) == 6, f"L1 should have 6 solvable, got {len(solvable)}")
+    check(len(unsolvable) == 4, f"L1 should have 4 unsolvable, got {len(unsolvable)}")
 
     # All have payoff fields
     for p in l1_dec:
@@ -589,11 +767,11 @@ def validate_decision_generators():
 
     # L2 decision problems
     l2_dec = generate_decision_problems(novelty_level=2, base_seed=42)
-    check(len(l2_dec) == 5, f"L2 should have 5 decision problems, got {len(l2_dec)}")
+    check(len(l2_dec) == 10, f"L2 should have 10 decision problems, got {len(l2_dec)}")
     l2_unsolvable = [p for p in l2_dec if not p.get("is_solvable", True)]
     check(
-        len(l2_unsolvable) == 2,
-        f"L2 should have 2 unsolvable, got {len(l2_unsolvable)}",
+        len(l2_unsolvable) == 4,
+        f"L2 should have 4 unsolvable, got {len(l2_unsolvable)}",
     )
 
     # Contradictory system L1: verify it's actually contradictory
@@ -626,10 +804,54 @@ def validate_decision_generators():
         "L2 missing-info should mention Zeta operators",
     )
 
+    # Verify new unsolvable types
+    from prism_v2.problems.generator import (
+        _generate_underspecified_rate_l1,
+        _generate_underspecified_rate_l2,
+        _generate_circular_constraint_l1,
+        _generate_circular_constraint_l2,
+    )
+
+    underspec = _generate_underspecified_rate_l1("test_underspec", seed=42)
+    check(not underspec["is_solvable"], "Underspecified-rate should be unsolvable")
+    check(
+        underspec["unsolvable_reason"] == "missing_tax_rate",
+        f"Underspecified reason should be missing_tax_rate, got {underspec['unsolvable_reason']}",
+    )
+    check(
+        "applicable" in underspec["problem_statement"].lower(),
+        "Underspecified-rate should mention 'applicable' tax (vague wording)",
+    )
+
+    underspec_l2 = _generate_underspecified_rate_l2("test_underspec_l2", seed=42)
+    check(
+        "Zeta" in underspec_l2["problem_statement"],
+        "L2 underspecified-rate should mention Zeta operators",
+    )
+
+    circular = _generate_circular_constraint_l1("test_circular", seed=42)
+    check(not circular["is_solvable"], "Circular-constraint should be unsolvable")
+    check(
+        circular["unsolvable_reason"] == "circular_constraint",
+        f"Circular reason should be circular_constraint, got {circular['unsolvable_reason']}",
+    )
+    check(
+        "exceeds" in circular["problem_statement"].lower(),
+        "Circular-constraint should mention threshold condition",
+    )
+
+    circular_l2 = _generate_circular_constraint_l2("test_circular_l2", seed=42)
+    check(
+        "Zeta" in circular_l2["problem_statement"],
+        "L2 circular-constraint should mention Zeta operators",
+    )
+
     # Payoff profiles
     check("low" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'low'")
     check("medium" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'medium'")
     check("high" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'high'")
+    check("very_high" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'very_high'")
+    check("trap" in PAYOFF_PROFILES, "PAYOFF_PROFILES should have 'trap'")
 
     print(f"  Decision generator checks complete")
 
@@ -808,6 +1030,7 @@ def validate_contradictory_systems():
     contra = _generate_contradictory_system_l1("deep_l1", seed=42)
     # Re-generate the system to get the matrix
     import random
+
     rng = random.Random(42)
     coeff_range = (-5, 5)
     while True:
@@ -870,7 +1093,7 @@ def validate_zeta_math():
                 computed_rhs = sum(_zeta_mul(A_zeta[i][j], x_true[j]) for j in range(3))
                 check(
                     computed_rhs == rhs[i],
-                    f"Zeta eq {i+1} mismatch ({difficulty}, seed={seed}): "
+                    f"Zeta eq {i + 1} mismatch ({difficulty}, seed={seed}): "
                     f"computed={computed_rhs}, expected={rhs[i]}",
                 )
 
@@ -935,11 +1158,11 @@ def validate_json_files():
     with open(l2_bank_path) as f:
         l2_bank = json.load(f)
 
-    # Expected counts: 10 main + 5 feedback + 5 decision = 20
-    check(len(l1_data) == 20, f"L1 should have 20 problems, got {len(l1_data)}")
-    check(len(l2_data) == 20, f"L2 should have 20 problems, got {len(l2_data)}")
-    check(len(l1_bank) == 50, f"L1 bank should have 50 problems, got {len(l1_bank)}")
-    check(len(l2_bank) == 50, f"L2 bank should have 50 problems, got {len(l2_bank)}")
+    # Expected counts: 20 main + 10 decision = 30
+    check(len(l1_data) == 30, f"L1 should have 30 problems, got {len(l1_data)}")
+    check(len(l2_data) == 30, f"L2 should have 30 problems, got {len(l2_data)}")
+    check(len(l1_bank) == 55, f"L1 bank should have 55 problems, got {len(l1_bank)}")
+    check(len(l2_bank) == 55, f"L2 bank should have 55 problems, got {len(l2_bank)}")
 
     # Verify difficulty distribution for main problems
     for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
@@ -956,8 +1179,8 @@ def validate_json_files():
     for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
         decision_problems = [p for p in level_data if "decision" in p["id"]]
         check(
-            len(decision_problems) == 5,
-            f"{level_name} should have 5 decision problems, got {len(decision_problems)}",
+            len(decision_problems) == 10,
+            f"{level_name} should have 10 decision problems, got {len(decision_problems)}",
         )
         for dp in decision_problems:
             check(
@@ -985,13 +1208,16 @@ def validate_json_files():
             f"{level_name} should have 45 main problems, got {len(main_problems)}",
         )
         check(
-            len(decision_problems) == 5,
-            f"{level_name} should have 5 decision problems, got {len(decision_problems)}",
+            len(decision_problems) == 10,
+            f"{level_name} should have 10 decision problems, got {len(decision_problems)}",
         )
 
     # Spot-check: verify a Type-A L2 main problem's Zeta RHS
-    l2_type_a = [p for p in l2_data if p["problem_type"] == "A"
-                 and "main" in p["id"] and p.get("is_solvable", True)]
+    l2_type_a = [
+        p
+        for p in l2_data
+        if p["problem_type"] == "A" and "main" in p["id"] and p.get("is_solvable", True)
+    ]
     if l2_type_a:
         p = l2_type_a[0]
         meta = p["difficulty_metadata"]
@@ -1002,16 +1228,16 @@ def validate_json_files():
             computed = sum(_zeta_mul(A_zeta[i][j], x_true[j]) for j in range(3))
             check(
                 computed == rhs[i],
-                f"JSON {p['id']} eq {i+1}: computed RHS={computed}, stored={rhs[i]}",
+                f"JSON {p['id']} eq {i + 1}: computed RHS={computed}, stored={rhs[i]}",
             )
 
-    # Verify unsolvable decision problems (2 per level)
+    # Verify unsolvable decision problems (4 per level)
     for level_data, level_name in [(l1_data, "L1"), (l2_data, "L2")]:
         decision = [p for p in level_data if "decision" in p["id"]]
         unsolvable = [p for p in decision if not p.get("is_solvable", True)]
         check(
-            len(unsolvable) == 2,
-            f"{level_name} should have 2 unsolvable decision problems, got {len(unsolvable)}",
+            len(unsolvable) == 4,
+            f"{level_name} should have 4 unsolvable decision problems, got {len(unsolvable)}",
         )
 
     # Verify no zero Zeta coefficients in L2 Type-A problems
@@ -1039,15 +1265,16 @@ def validate_json_files():
                         eff = zc[i][j] + 1  # effective coefficient
                         check(
                             eff != 0,
-                            f"JSON {p['id']} eq{i+1} var{j+1}: effective coeff is 0 "
+                            f"JSON {p['id']} eq{i + 1} var{j + 1}: effective coeff is 0 "
                             f"(zeta={zc[i][j]})",
                         )
 
     # Verify negative Zeta coefficients are parenthesized in problem statements
     import re
+
     for p in l2_data:
         if p["problem_type"] == "A" and "(*)" in p.get("problem_statement", ""):
-            bad = re.findall(r'(?<!\()(-\d+) \(\*\)', p["problem_statement"])
+            bad = re.findall(r"(?<!\()(-\d+) \(\*\)", p["problem_statement"])
             check(
                 len(bad) == 0,
                 f"JSON {p['id']} has unparenthesized negative Zeta coefficient: {bad}",
@@ -1068,14 +1295,15 @@ def validate_problem_bank_sampling():
         novelty_level=1,
         base_seed=123,
         main_per_cell=3,
-        include_feedback=False,
         include_decision=True,
     )
     summary = summarize_problem_set(bank)
-    check(summary["main"] == 27, f"Expected 27 main bank problems, got {summary['main']}")
     check(
-        summary["decision"] == 5,
-        f"Expected 5 decision bank problems, got {summary['decision']}",
+        summary["main"] == 27, f"Expected 27 main bank problems, got {summary['main']}"
+    )
+    check(
+        summary["decision"] == 10,
+        f"Expected 10 decision bank problems, got {summary['decision']}",
     )
     check(
         all(count == 3 for count in summary["main_by_cell"].values()),
@@ -1086,22 +1314,20 @@ def validate_problem_bank_sampling():
         bank,
         num_main=10,
         seed=123,
-        include_feedback=False,
     )
     subset_summary = summarize_problem_set(subset)
-    check(subset_summary["main"] == 10, f"Subset should keep 10 main problems, got {subset_summary['main']}")
     check(
-        subset_summary["decision"] == 5,
+        subset_summary["main"] == 10,
+        f"Subset should keep 10 main problems, got {subset_summary['main']}",
+    )
+    check(
+        subset_summary["decision"] == 10,
         f"Subset should retain all decision problems, got {subset_summary['decision']}",
     )
     selected_cell_counts = list(subset_summary["main_by_cell"].values())
     check(
         max(selected_cell_counts) - min(selected_cell_counts) <= 1,
         f"Subset main-cell balance too uneven: {subset_summary['main_by_cell']}",
-    )
-    check(
-        all("feedback" not in p["id"] for p in subset),
-        "Subset should exclude feedback problems by default",
     )
 
     print("  Problem bank sampling complete")
@@ -1121,6 +1347,7 @@ def main():
     validate_ground_truth()
     validate_parsers()
     validate_scoring()
+    validate_judge_sanitization()
     validate_difficulty_distribution()
     validate_pipeline_cache()
     validate_pipeline_final_answer_scoring()

@@ -82,7 +82,7 @@ The L1-to-L2 slope is the contamination control. If metacognitive ability drops 
 
 ### 3.3 Metacognitive Control (Decision Problems)
 
-Five decision problems per novelty level. The model evaluates each problem and decides whether to ACCEPT or DECLINE it, given an explicit payoff structure (+X for correct, -Y for wrong, +Z for decline). Two of the five problems are intentionally unsolvable (contradictory system, missing-info word problem). This tests metacognitive control — the ability to evaluate one's own competence before committing to a task.
+Ten decision problems per novelty level. The model evaluates each problem and decides whether to ACCEPT or DECLINE it, given an explicit payoff structure (+X for correct, -Y for wrong, +Z for decline). Four of the ten problems are intentionally unsolvable (contradictory system, missing-info word problem, underspecified rate, circular constraint). This tests metacognitive control — the ability to evaluate one's own competence before committing to a task.
 
 ### 3.4 The Six Benchmark Tasks
 
@@ -173,11 +173,11 @@ We need a dataset of problems. The approach:
 
 Given quota constraints ($50/day, $500/month), we need to be efficient:
 
-- Each main problem requires 3 API calls (prospective, solve, retrospective)
+- Each main problem requires 4 API calls (prospective, solve, blind retrospective, informed retrospective)
 - Each decision problem requires 1 API call (combined decision + solve)
-- Default eval target: **10 main problems per novelty level** (Tasks 1-4, 6), sampled from a larger balanced bank
-- Target: **5 decision problems per novelty level** (Task 5)
-- Total per model: 10×3×2 + 5×1×2 = **70 API calls**
+- Default eval target: **20 main problems per novelty level** (Tasks 1-4, 6), sampled from a larger balanced bank
+- Target: **10 decision problems per novelty level** (Task 5)
+- Total per model: 20×4×2 + 10×1×2 = **180 API calls**
 
 This is feasible within daily quota if we batch efficiently.
 
@@ -290,9 +290,32 @@ After all steps, state your FINAL ANSWER clearly.
 - Compare extracted answers against ground truth numerically (with tolerance for floating point)
 - For algebraic expressions, normalize and compare symbolically if possible, otherwise fall back to string comparison
 
-### 5.4 Dimension 3: Retrospective Metacognitive Report
+### 5.4 Dimension 3a: Blind Retrospective Report
 
-Delivered as a NEW message in the same conversation. The model is told ONLY whether it got the overall answer right or wrong, and which steps were right/wrong. It is NOT given the correct answers.
+Delivered as a NEW message in the same conversation BEFORE revealing results. The model must self-assess each step's correctness without any feedback.
+
+```
+Now that you have finished solving, assess how you did on each step 
+BEFORE I tell you the results.
+
+For each step, categorize your experience as exactly one of:
+- "confident and correct"
+- "confident but wrong"
+- "uncertain and correct"
+- "uncertain and wrong"
+
+Format as:
+Step 1: [label]
+Step 2: [label]
+... etc.
+```
+
+**Data extraction:**
+- `blind_self_assessment`: array of N categorical values from the 2×2 grid
+
+### 5.5 Dimension 3b: Informed Retrospective Report
+
+Delivered as a NEW message in the same conversation. The model is told which steps were right/wrong but is NOT given the correct answers.
 
 ```
 Here is your result: You got [X] out of [N] steps correct.
@@ -307,26 +330,13 @@ Now reflect on your performance:
 1. HARDEST STEP: Which step actually gave you the most trouble 
    during your reasoning? Give just the number.
 
-2. PER-STEP SELF-ASSESSMENT: For each step, categorize your 
-   experience as exactly one of:
-   - "confident and correct"
-   - "confident but wrong"  
-   - "uncertain and correct"
-   - "uncertain and wrong"
-   
-   Format as:
-   Step 1: [label]
-   Step 2: [label]
-   ... etc.
-
-3. COUNTERFACTUAL: Name one specific thing you considered doing 
+2. COUNTERFACTUAL: Name one specific thing you considered doing 
    differently but chose not to. What was the alternative approach, 
    and why did you reject it?
 ```
 
 **Data extraction:**
 - `reported_weakest_step`: integer (1 to N)
-- `retrospective_assessment_vector`: array of N categorical values from the 2×2 grid
 - `counterfactual_action`: free text describing what the model "almost did"
 - `counterfactual_reason`: free text describing why it was rejected
 
@@ -335,7 +345,7 @@ Now reflect on your performance:
 - Per-step assessment: match `Step \d+:\s*(confident and correct|confident but wrong|uncertain and correct|uncertain and wrong)`
 - Counterfactual: extract full text after "COUNTERFACTUAL:" — this doesn't need structured parsing since it's judged by LLM-as-judge
 
-### 5.5 Decision Problem Prompt (Task 5: Metacognitive Control)
+### 5.6 Decision Problem Prompt (Task 5: Metacognitive Control)
 
 For each decision problem the model receives the problem statement, explicit payoff structure, and instructions to first decide ACCEPT or DECLINE, then attempt the problem regardless:
 
@@ -361,7 +371,7 @@ showing your work step by step.
 [PROBLEM STATEMENT]
 ```
 
-**Design note:** The model always attempts to solve (regardless of decision) so we can evaluate correctness and compute the oracle's optimal strategy. The payoff profiles vary across problems: low-risk (small penalty), medium-risk, and high-risk (large penalty). Two of the five problems per level are unsolvable (contradictory system, missing information).
+**Design note:** The model always attempts to solve (regardless of decision) so we can evaluate correctness and compute the oracle's optimal strategy. The payoff profiles vary across problems: low-risk (small penalty), medium-risk, high-risk (large penalty), very-high-risk, and trap (moderate reward but large penalty). Four of the ten problems per level are unsolvable (contradictory system, missing information, underspecified rate, circular constraint).
 
 ---
 
@@ -409,18 +419,18 @@ showing your work step by step.
 
 ### 6.3 Task 3: Retrospective Self-Assessment Accuracy
 
-**What it measures:** After being told which steps were right/wrong, can the model accurately recognize which steps it got right vs. wrong?
+**What it measures:** After solving, can the model accurately recognize which steps it got right vs. wrong *before being told the results*?
 
 **Calculation:**
 1. For each step, we know:
    - The ground truth correctness (from D2)
-   - The retrospective self-assessment (from D3)
+   - The blind retrospective self-assessment (from D3a, before results are revealed)
 2. A retrospective label is counted as correct if its reported correct/wrong status matches reality:
    - Actual correct → either "confident and correct" or "uncertain and correct"
    - Actual wrong → either "confident but wrong" or "uncertain and wrong"
 3. Score = proportion of steps where retrospective label reports the correct outcome status
 
-**Why this scoring works:** It keeps Task 3 independent of the earlier D1 report. The benchmark still records retrospective confidence wording, but the core Task 3 score focuses on whether the model can accurately recognize its own step-level successes and failures after receiving outcome feedback.
+**Why this scoring works:** It keeps Task 3 independent of the earlier D1 report. The model must genuinely track which steps it got right vs. wrong without being told — this is a much harder test of retrospective monitoring than the old design that leaked results before asking for self-assessment. The benchmark still records retrospective confidence wording, but the core Task 3 score focuses on whether the model can accurately recognize its own step-level successes and failures from internal monitoring alone.
 
 **Score for benchmark:** Proportion correct (0.0 to 1.0).
 
@@ -436,13 +446,13 @@ This is the most novel score. It has three sub-components:
 - Value: 0.0 to 1.0
 
 **Sub-score B — Confidence Consistency (weight: 0.45):**
-- Spearman ρ between D1's per-step confidence vector and D3's per-step difficulty reports
-- D3's self-assessment is mapped to a difficulty scale: "uncertain and wrong" = 4 (hardest), "confident but wrong" = 3, "uncertain and correct" = 2, "confident and correct" = 1 (easiest)
+- Spearman ρ between D1's per-step confidence vector and D3a's per-step blind self-assessment
+- D3a's self-assessment is mapped to a difficulty scale: "uncertain and wrong" = 4 (hardest), "confident but wrong" = 3, "uncertain and correct" = 2, "confident and correct" = 1 (easiest)
 - Average ρ across problems, then normalize: (ρ + 1) / 2
 - Value: 0.0 to 1.0
 
 **Sub-score C — Counterfactual Plausibility (weight: 0.20):**
-- Use LLM-as-judge (via kbench.assertions.assess_response_with_judge) to evaluate whether the counterfactual from D3 is plausible
+- Use LLM-as-judge (via kbench.assertions.assess_response_with_judge) to evaluate whether the counterfactual from D3b is plausible
 - Judge criteria:
   1. "The alternative approach described is a mathematically valid method for this type of problem"
   2. "The stated reason for rejecting the alternative is logically coherent"
@@ -459,9 +469,9 @@ This is the most novel score. It has three sub-components:
 **What it measures:** Can the model accurately evaluate its own competence and make rational accept/decline decisions given explicit payoff structures?
 
 **Design:**
-- 5 decision problems per novelty level:
-  - 3 solvable: Type A easy/low-risk (+5/-3/+1), Type B medium/medium-risk (+10/-15/+2), Type C hard/high-risk (+20/-30/+3)
-  - 2 unsolvable: contradictory system (Type A), missing-info word problem (Type B)
+- 10 decision problems per novelty level:
+  - 6 solvable: Type A easy/low-risk, Type B medium/medium-risk, Type C hard/high-risk, Type A hard/very-high-risk, Type B easy/trap, Type C medium/low-risk
+  - 4 unsolvable: contradictory system (Type A), missing-info word problem (Type B), underspecified rate (Type B), circular constraint (Type B)
 - The model must ACCEPT or DECLINE each problem given the payoff structure
 - Regardless of decision, the model always attempts to solve (for calibration)
 
@@ -511,18 +521,21 @@ prism_v2/
 │   └── task_06_novelty_robustness.py           # L1/L2 ratio task
 ├── problems/
 │   ├── generator.py                            # Problem generation engine
-│   ├── l1_problems.json                        # Pre-generated L1 problem set
-│   └── l2_problems.json                        # Pre-generated L2 problem set
+│   ├── l1_problems.json                        # Pre-generated L1 problem set (20 main + 10 decision)
+│   ├── l2_problems.json                        # Pre-generated L2 problem set (20 main + 10 decision)
+│   ├── l1_problem_bank.json                    # L1 problem bank (45 main + 10 decision)
+│   └── l2_problem_bank.json                    # L2 problem bank (45 main + 10 decision)
 ├── scoring/
 │   ├── step_scorer.py                          # Per-step answer extraction & scoring
 │   ├── confidence_parser.py                    # Parse confidence responses
+│   ├── decision_scorer.py                      # Parse accept/decline decisions
 │   └── metrics.py                              # AUROC, Spearman, drift calculations
 ├── prompts/
 │   ├── system.py                               # System prompt
 │   ├── prospective.py                          # D1 prompt template
 │   ├── solve.py                                # D2 prompt template
-│   ├── retrospective.py                        # D3 prompt template
-│   └── feedback.py                             # (Legacy, unused)
+│   ├── retrospective.py                        # D3a + D3b prompt templates
+│   └── decision.py                             # Decision problem prompt (Task 5)
 └── notebook.ipynb                              # Main Kaggle notebook
 ```
 
@@ -539,10 +552,12 @@ This is the exact sequence of operations for a single problem:
 6. Send D2 (solve) prompt in the same conversation
 7. Parse D2 response → extract per-step answers
 8. Score each step against ground truth → step_correctness array
-9. Construct D3 prompt with step-level results (but not correct answers)
-10. Send D3 (retrospective) prompt in the same conversation
-11. Parse D3 response → extract reported_weakest, self_assessment, counterfactual
-12. Store all data in a results dictionary for this problem
+9. Send D3a (blind retrospective) prompt — no results revealed
+10. Parse D3a response → extract per-step self-assessment labels
+11. Construct D3b prompt with step-level results (but not correct answers)
+12. Send D3b (informed retrospective) prompt in the same conversation
+13. Parse D3b response → extract reported_weakest, counterfactual
+14. Store all data in a results dictionary for this problem
 ```
 
 For decision problems (Task 5), steps 4-12 are replaced by a single combined decision + solve prompt. The model's ACCEPT/DECLINE choice and attempted solution are parsed from one response.
@@ -637,10 +652,11 @@ The SDK supports multi-turn conversations. The critical implementation:
 1. Create a chat session for each problem
 2. Send D1 prompt → get response → parse
 3. In the same session, send D2 prompt → get response → parse
-4. In the same session, send D3 prompt → get response → parse
-5. Close the session
+4. In the same session, send D3a prompt (blind) → get response → parse
+5. In the same session, send D3b prompt (informed) → get response → parse
+6. Close the session
 
-The model retains context across all three turns, which is essential — D3 asks the model to reflect on its D1 predictions and D2 performance within the same conversational context.
+The model retains context across all four turns, which is essential — D3a asks the model to self-assess before seeing results, and D3b asks it to reflect on its D1 predictions and D2 performance within the same conversational context.
 
 If the SDK doesn't support persistent chat sessions, fall back to building message history manually and sending the full conversation each time.
 
@@ -734,7 +750,7 @@ Reasons:
 - Speed — no generation overhead during benchmark execution
 - Debugging — problems can be inspected and reviewed
 
-Generate 10 L1 main problems, 5 L1 decision problems, and 15 L2 problems (10 main + 5 decision), at three difficulty levels. Store in JSON files attached to the Kaggle notebook as datasets.
+Generate 20 L1 main problems, 10 L1 decision problems, and 30 L2 problems (20 main + 10 decision), at three difficulty levels. Store in JSON files attached to the Kaggle notebook as datasets.
 
 ---
 
@@ -742,15 +758,15 @@ Generate 10 L1 main problems, 5 L1 decision problems, and 15 L2 problems (10 mai
 
 ### 9.1 Sample Size and Power
 
-With 10 problems per novelty level per task, our statistical power is limited. Here's what we can and can't detect:
+With 20 problems per novelty level per task, our statistical power is improved over earlier designs. Here's what we can detect:
 
-**AUROC (Task 1):** 10 problems give us 10 (confidence, outcome) pairs. We can detect AUROC significantly different from 0.5 only for large effects (AUROC > ~0.8). This is acceptable for a benchmark — we're measuring the metric, not testing a null hypothesis.
+**AUROC (Task 1):** 20 problems give us 20 (confidence, outcome) pairs. We can detect AUROC significantly different from 0.5 for moderate effects (AUROC > ~0.7).
 
-**Spearman ρ (Task 2):** 10 problems × 5 steps = 50 (confidence, correctness) pairs if pooled, but correlations are computed per-problem and averaged. Individual problem-level ρ with N=5 needs very strong effects. The averaged ρ across 10 problems is more stable.
+**Spearman ρ (Task 2):** 20 problems × 5 steps = 100 (confidence, correctness) pairs if pooled, but correlations are computed per-problem and averaged. The averaged ρ across 20 problems is reasonably stable.
 
-**Coherence (Task 4):** Location consistency is binary per problem, so 10 problems give us a proportion ± ~15% (binomial SE). Confidence consistency follows the same logic as Task 2.
+**Coherence (Task 4):** Location consistency is binary per problem, so 20 problems give us a proportion ± ~11% (binomial SE). Confidence consistency follows the same logic as Task 2.
 
-**Metacognitive Control (Task 5):** 5 decision problems per novelty level. The utility-based scoring normalizes the model's total payoff to [0, 1] relative to worst and optimal (oracle) strategies. With only 5 decisions the score is coarse-grained (each decision shifts the score by ~0.1-0.3 depending on payoff magnitudes), but the accept/decline binary is robust to parse noise.
+**Metacognitive Control (Task 5):** 10 decision problems per novelty level. The utility-based scoring normalizes the model's total payoff to [0, 1] relative to worst and optimal (oracle) strategies. With 10 decisions the score provides meaningful discrimination (each decision shifts the score by ~0.05-0.15 depending on payoff magnitudes).
 
 ### 9.2 Reporting
 
@@ -872,7 +888,7 @@ These decisions should be finalized during implementation:
 
 1. **Step count per problem:** Currently set at 5. Could increase to 6-7 for better Spearman power, but longer problems increase API cost and parsing complexity.
 
-2. **Number of decision problems per level:** Currently 5 (3 solvable + 2 unsolvable). Could increase for finer-grained utility scoring, but 5 is sufficient for a coarse signal while keeping API costs low.
+2. **Number of decision problems per level:** Set at 10 (6 solvable + 4 unsolvable). Provides meaningful utility scoring with diverse payoff profiles and unsolvable problem types.
 
 3. **Counterfactual scoring weight:** Reduced to 0.20 in the coherence composite (from original 0.3), with location consistency at 0.35 and confidence consistency at 0.45. This reflects that LLM-as-judge scoring is noisier than the deterministic sub-scores.
 

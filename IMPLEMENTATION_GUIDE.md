@@ -31,7 +31,8 @@ PRISM (Prospective-Retrospective Introspective Self-Model) measures **metacognit
 |-----------|------|--------------------|
 | D1: Prospective | Before solving | Predict which steps will be hardest, rate per-step confidence, place a bet |
 | D2: Performance | During solving | Solve the problem step-by-step |
-| D3: Retrospective | After solving | Report which steps were hardest, self-assess each step, describe a counterfactual approach |
+| D3a: Blind Retrospective | After solving (before results) | Self-assess each step's correctness without seeing results |
+| D3b: Informed Retrospective | After seeing results | Report which step was hardest, describe a counterfactual approach |
 
 Six tasks derive scores from comparing D1, D2, and D3:
 
@@ -58,8 +59,8 @@ Six tasks derive scores from comparing D1, D2, and D3:
                                |
                     +----------v----------+
                     |   Pipeline Engine    |
-                    |  D1 -> D2 -> D3     |
-                    |  per problem        |
+                    |  D1 -> D2 -> D3a    |
+                    |  -> D3b per problem  |
                     +----------+----------+
                                |
               +----------------+----------------+
@@ -98,8 +99,10 @@ prism_v2/
   problems/
     __init__.py
     generator.py                           # Problem generation engine
-    l1_problems.json                       # 20 pre-generated L1 problems
-    l2_problems.json                       # 20 pre-generated L2 problems
+    l1_problems.json                       # 30 pre-generated L1 problems (20 main + 10 decision)
+    l2_problems.json                       # 30 pre-generated L2 problems (20 main + 10 decision)
+    l1_problem_bank.json                   # 55 L1 problems (45 main + 10 decision)
+    l2_problem_bank.json                   # 55 L2 problems (45 main + 10 decision)
 
   prompts/
     __init__.py
@@ -108,7 +111,7 @@ prism_v2/
     solve.py                               # D2 prompt builder
     retrospective.py                       # D3 prompt builder
     decision.py                            # Decision prompt builder (Task 5)
-    feedback.py                            # Feedback round prompt (reserved)
+
 
   scoring/
     __init__.py
@@ -152,6 +155,8 @@ The directory structure in the dataset should be:
       generator.py
       l1_problems.json
       l2_problems.json
+      l1_problem_bank.json
+      l2_problem_bank.json
     prompts/
       __init__.py
       system.py
@@ -159,7 +164,6 @@ The directory structure in the dataset should be:
       solve.py
       retrospective.py
       decision.py
-      feedback.py
     scoring/
       __init__.py
       confidence_parser.py
@@ -211,18 +215,19 @@ The notebook has 6 code cells:
 
 ### Execution Flow
 
-For each of the active main-evaluation problems (default: 10 L1 + 10 L2):
+For each of the active main-evaluation problems (default: 20 L1 + 20 L2):
 
 ```
 1. Create isolated chat: kbench.chats.new("prism_{id}", system_instructions=SYSTEM_PROMPT)
 2. D1: Send prospective prompt -> LLM predicts weakest step, rates confidence, places bet
 3. D2: Send solve prompt -> LLM solves step-by-step (same conversation)
-4. D3: Send retrospective prompt (with per-step correctness feedback) -> LLM self-assesses
-5. Parse all three responses; score step answers against ground truth
-6. Store ProblemResult in cache
+4. D3a: Send blind retrospective prompt (no results revealed) -> LLM self-assesses each step
+5. D3b: Send informed retrospective prompt (with per-step correctness) -> LLM reports hardest step + counterfactual
+6. Parse all four responses; score step answers against ground truth
+7. Store ProblemResult in cache
 ```
 
-For 10 decision problems (5 L1 + 5 L2) used by Task 5:
+For 20 decision problems (10 L1 + 10 L2) used by Task 5:
 
 ```
 1. Create isolated chat per decision problem
@@ -258,10 +263,10 @@ For 10 decision problems (5 L1 + 5 L2) used by Task 5:
 
 ### Task 3: Retrospective Self-Assessment
 
-- **Input:** Per-step self-assessment labels (D3) + actual correctness (D2)
+- **Input:** Per-step blind self-assessment labels (D3a, before seeing results) + actual correctness (D2)
 - **Expected labels:** "confident and correct", "uncertain and correct", "confident but wrong", "uncertain and wrong"
-- **Metric:** Proportion of steps where the reported correct/wrong status matches reality
-- **Interpretation:** Can the model accurately recognize its own step-level successes and failures after the fact?
+- **Metric:** Proportion of steps where the blind self-assessment's correct/wrong status matches reality
+- **Interpretation:** Can the model accurately recognize its own step-level successes and failures *without* being told the answers?
 
 ### Task 4: Coherence (Composite)
 
@@ -281,8 +286,8 @@ Three sub-scores:
 ### Task 5: Metacognitive Control (Utility Ratio)
 
 - **Input:** Accept/decline decisions + solve outcomes + payoff structures
-- **Problems:** 5 per novelty level (3 solvable at varying difficulty/risk + 2 unsolvable)
-- **Payoff profiles:** low (+5/-3/+1), medium (+10/-15/+2), high (+20/-30/+3)
+- **Problems:** 10 per novelty level (6 solvable at varying difficulty/risk + 4 unsolvable)
+- **Payoff profiles:** low (+5/-3/+1), medium (+10/-15/+2), high (+20/-30/+3), very_high (+30/-50/+4), trap (+8/-25/+3)
 - **Metric:** `(model_utility - worst_utility) / (optimal_utility - worst_utility)`
 - **Interpretation:** Does the model act on its self-knowledge by declining problems it can't solve and accepting problems it can?
 - **Range:** 0.0 (worst possible decisions) to 1.0 (optimal oracle)
@@ -318,10 +323,9 @@ Each type has easy, medium, and hard variants with increasing coefficient/operan
 
 ### Problem Counts
 
-- Default eval slice: 10 main problems per novelty level (sampled from a balanced bank)
-- 5 decision problems per novelty level (3 solvable + 2 unsolvable, used for Task 5)
-- Optional bank mode: 45 main problems per novelty level (5 per type/difficulty cell) plus 5 decision problems
-- Feedback problems are legacy/reserved and not used in the current Kaggle path
+- Default eval slice: 20 main problems per novelty level (sampled from a balanced bank)
+- 10 decision problems per novelty level (6 solvable + 4 unsolvable, used for Task 5)
+- Optional bank mode: 45 main problems per novelty level (5 per type/difficulty cell) plus 10 decision problems
 
 ---
 

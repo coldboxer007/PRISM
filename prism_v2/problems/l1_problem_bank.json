@@ -20,7 +20,7 @@
       "24.7",
       "4.94"
     ],
-    "ground_truth_final": "24.7",
+    "ground_truth_final": "4.94",
     "difficulty_metadata": {
       "price_per_unit": 4,
       "units": 5,
@@ -121,7 +121,7 @@
       "714.22",
       "35.71"
     ],
-    "ground_truth_final": "714.22",
+    "ground_truth_final": "35.71",
     "difficulty_metadata": {
       "price_per_unit": 34,
       "units": 20,
@@ -222,7 +222,7 @@
       "3083.08",
       "146.81"
     ],
-    "ground_truth_final": "3083.08",
+    "ground_truth_final": "146.81",
     "difficulty_metadata": {
       "price_per_unit": 148,
       "units": 21,
@@ -323,7 +323,7 @@
       "83.22",
       "6.4"
     ],
-    "ground_truth_final": "83.22",
+    "ground_truth_final": "6.4",
     "difficulty_metadata": {
       "price_per_unit": 6,
       "units": 13,
@@ -424,7 +424,7 @@
       "845.31",
       "38.42"
     ],
-    "ground_truth_final": "845.31",
+    "ground_truth_final": "38.42",
     "difficulty_metadata": {
       "price_per_unit": 46,
       "units": 22,
@@ -525,7 +525,7 @@
       "6650.78",
       "158.35"
     ],
-    "ground_truth_final": "6650.78",
+    "ground_truth_final": "158.35",
     "difficulty_metadata": {
       "price_per_unit": 150,
       "units": 42,
@@ -626,7 +626,7 @@
       "69.37",
       "7.71"
     ],
-    "ground_truth_final": "69.37",
+    "ground_truth_final": "7.71",
     "difficulty_metadata": {
       "price_per_unit": 7,
       "units": 9,
@@ -727,7 +727,7 @@
       "461.26",
       "20.97"
     ],
-    "ground_truth_final": "461.26",
+    "ground_truth_final": "20.97",
     "difficulty_metadata": {
       "price_per_unit": 20,
       "units": 22,
@@ -828,7 +828,7 @@
       "4072.29",
       "84.84"
     ],
-    "ground_truth_final": "4072.29",
+    "ground_truth_final": "84.84",
     "difficulty_metadata": {
       "price_per_unit": 84,
       "units": 48,
@@ -929,7 +929,7 @@
       "25.01",
       "4.17"
     ],
-    "ground_truth_final": "25.01",
+    "ground_truth_final": "4.17",
     "difficulty_metadata": {
       "price_per_unit": 3,
       "units": 6,
@@ -1030,7 +1030,7 @@
       "1317.05",
       "45.42"
     ],
-    "ground_truth_final": "1317.05",
+    "ground_truth_final": "45.42",
     "difficulty_metadata": {
       "price_per_unit": 49,
       "units": 29,
@@ -1131,7 +1131,7 @@
       "2530.34",
       "126.52"
     ],
-    "ground_truth_final": "2530.34",
+    "ground_truth_final": "126.52",
     "difficulty_metadata": {
       "price_per_unit": 143,
       "units": 20,
@@ -1232,7 +1232,7 @@
       "38.1",
       "6.35"
     ],
-    "ground_truth_final": "38.1",
+    "ground_truth_final": "6.35",
     "difficulty_metadata": {
       "price_per_unit": 6,
       "units": 6,
@@ -1333,7 +1333,7 @@
       "453.64",
       "45.36"
     ],
-    "ground_truth_final": "453.64",
+    "ground_truth_final": "45.36",
     "difficulty_metadata": {
       "price_per_unit": 45,
       "units": 10,
@@ -1434,7 +1434,7 @@
       "2436.14",
       "78.59"
     ],
-    "ground_truth_final": "2436.14",
+    "ground_truth_final": "78.59",
     "difficulty_metadata": {
       "price_per_unit": 94,
       "units": 31,
@@ -1575,7 +1575,7 @@
       "674.67",
       "22.49"
     ],
-    "ground_truth_final": "674.67",
+    "ground_truth_final": "22.49",
     "difficulty_metadata": {
       "price_per_unit": 23,
       "units": 30,
@@ -1631,6 +1631,119 @@
     "id": "l1_decision_003",
     "novelty_level": 1,
     "problem_type": "A",
+    "difficulty": "hard",
+    "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: -6x + 3y - 9z = -45\nEquation 2: 8x + 10y - 3z = -189\nEquation 3: -7x - y + 2z = 112\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = 8/-6\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -7/-6). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute the multiplier m = A[1][0]/A[0][0] = 8/-6",
+      "Eliminate x from equation 2: new RHS = -189 - -1.33333*-45",
+      "Eliminate x from equation 3: new RHS = 112 - 1.16667*-45",
+      "Solve the reduced 2x2 system for z",
+      "Back-substitute z to find y"
+    ],
+    "ground_truth_steps": [
+      "-1.33333",
+      "-249",
+      "164.5",
+      "11",
+      "-6"
+    ],
+    "ground_truth_final": "x = -12, y = -6, z = 11",
+    "difficulty_metadata": {
+      "coefficient_range": [
+        -10,
+        10
+      ],
+      "solution_range": [
+        -20,
+        20
+      ],
+      "has_fractions": true,
+      "determinant": -645
+    },
+    "operator_preamble": null,
+    "is_solvable": true,
+    "payoff_correct": 30,
+    "payoff_wrong": -50,
+    "payoff_decline": 4
+  },
+  {
+    "id": "l1_decision_004",
+    "novelty_level": 1,
+    "problem_type": "B",
+    "difficulty": "easy",
+    "problem_statement": "A customer orders 11 items at $11 each. They receive a 15% discount on the subtotal. A sales tax of 10% is applied after the discount. Finally, a flat shipping fee of $9 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute subtotal = price * quantity",
+      "Apply discount to subtotal",
+      "Apply tax after discount",
+      "Add shipping to get total",
+      "Compute per-unit cost"
+    ],
+    "ground_truth_steps": [
+      "121",
+      "102.85",
+      "113.14",
+      "122.14",
+      "11.1"
+    ],
+    "ground_truth_final": "11.1",
+    "difficulty_metadata": {
+      "price_per_unit": 11,
+      "units": 11,
+      "tax_pct": 10,
+      "discount_pct": 15,
+      "shipping": 9
+    },
+    "operator_preamble": null,
+    "is_solvable": true,
+    "payoff_correct": 8,
+    "payoff_wrong": -25,
+    "payoff_decline": 3
+  },
+  {
+    "id": "l1_decision_005",
+    "novelty_level": 1,
+    "problem_type": "C",
+    "difficulty": "medium",
+    "problem_statement": "Perform the following chain of modular arithmetic operations (mod 13).\nShow your work for each step.\n\nStep 1: Compute 91 mod 13\nStep 2: Add 38 to the result of Step 1, then take mod 13\nStep 3: Multiply the result of Step 2 by 9, then take mod 13\nStep 4: Add 27 to the result of Step 3, then take mod 13\nStep 5: Raise the result of Step 4 to the power 5, then take mod 13",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute 91 mod 13",
+      "(0 + 38) mod 13",
+      "(12 * 9) mod 13",
+      "(4 + 27) mod 13",
+      "(5^5) mod 13"
+    ],
+    "ground_truth_steps": [
+      "0",
+      "12",
+      "4",
+      "5",
+      "5"
+    ],
+    "ground_truth_final": "5",
+    "difficulty_metadata": {
+      "modulus": 13,
+      "operands": [
+        91,
+        38,
+        9,
+        27,
+        5
+      ]
+    },
+    "operator_preamble": null,
+    "is_solvable": true,
+    "payoff_correct": 5,
+    "payoff_wrong": -3,
+    "payoff_decline": 1
+  },
+  {
+    "id": "l1_decision_006",
+    "novelty_level": 1,
+    "problem_type": "A",
     "difficulty": "unsolvable",
     "problem_statement": "Solve the following system of linear equations for x, y, and z using Gaussian elimination.\nShow your work for each step.\n\nEquation 1: 5x + 4y - 3z = -28\nEquation 2: -4x - 4y - 4z = -12\nEquation 3: -x + 7z = 39\n\nSteps:\nStep 1: Compute the multiplier m = A[1][0]/A[0][0] = -4/5\nStep 2: Eliminate x from equation 2 using the multiplier. State the new RHS.\nStep 3: Eliminate x from equation 3 (multiplier = -1/5). State the new RHS.\nStep 4: Solve the reduced 2x2 system for z.\nStep 5: Back-substitute z to find y.",
     "num_steps": 5,
@@ -1662,7 +1775,7 @@
     "payoff_decline": 2
   },
   {
-    "id": "l1_decision_004",
+    "id": "l1_decision_007",
     "novelty_level": 1,
     "problem_type": "B",
     "difficulty": "unsolvable",
@@ -1695,5 +1808,76 @@
     "payoff_correct": 10,
     "payoff_wrong": -15,
     "payoff_decline": 2
+  },
+  {
+    "id": "l1_decision_008",
+    "novelty_level": 1,
+    "problem_type": "B",
+    "difficulty": "unsolvable",
+    "problem_statement": "A customer orders 9 items at $32 each. They receive a 15% discount on the subtotal. The applicable sales tax is then added to the discounted price. Finally, a flat shipping fee of $20 is added.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Compute the discount amount and price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Compute the cost per unit (total / quantity)",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute subtotal = price * quantity",
+      "Apply discount to subtotal",
+      "Apply tax after discount",
+      "Add shipping to get total",
+      "Compute per-unit cost"
+    ],
+    "ground_truth_steps": [
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE"
+    ],
+    "ground_truth_final": "UNSOLVABLE",
+    "is_solvable": false,
+    "unsolvable_reason": "missing_tax_rate",
+    "difficulty_metadata": {
+      "quantity": 9,
+      "price_per_unit": 32,
+      "discount_pct": 15,
+      "shipping": 20
+    },
+    "operator_preamble": null,
+    "payoff_correct": 20,
+    "payoff_wrong": -30,
+    "payoff_decline": 3
+  },
+  {
+    "id": "l1_decision_009",
+    "novelty_level": 1,
+    "problem_type": "B",
+    "difficulty": "unsolvable",
+    "problem_statement": "A customer orders 6 items at $48 each. They receive a 20% discount if their final total (after tax and shipping) exceeds $135. A sales tax of 10% is applied to the subtotal after any discount. A flat shipping fee of $5 is added.\n\nNote: The discount applies to the subtotal, but whether the discount applies depends on the final total which includes tax and shipping.\n\nCalculate each of the following, showing your work step by step:\nStep 1: Compute the subtotal (price x quantity)\nStep 2: Determine whether the discount applies and compute price after discount\nStep 3: Compute the tax amount and price after tax\nStep 4: Compute the total including shipping\nStep 5: Verify whether your discount assumption was correct",
+    "num_steps": 5,
+    "step_descriptions": [
+      "Compute subtotal = price * quantity",
+      "Determine discount applicability",
+      "Apply tax",
+      "Add shipping for total",
+      "Verify discount assumption consistency"
+    ],
+    "ground_truth_steps": [
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE",
+      "UNSOLVABLE"
+    ],
+    "ground_truth_final": "UNSOLVABLE",
+    "is_solvable": false,
+    "unsolvable_reason": "circular_constraint",
+    "difficulty_metadata": {
+      "quantity": 6,
+      "price_per_unit": 48,
+      "tax_pct": 10,
+      "shipping": 5,
+      "threshold": 135
+    },
+    "operator_preamble": null,
+    "payoff_correct": 8,
+    "payoff_wrong": -25,
+    "payoff_decline": 3
   }
 ]

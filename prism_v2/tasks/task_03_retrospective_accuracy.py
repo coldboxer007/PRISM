@@ -1,15 +1,18 @@
 """
-Task 3: Retrospective Self-Assessment Accuracy
+Task 3: Retrospective Self-Assessment Accuracy (Blind)
 
-Measures whether, after being told which steps were right/wrong,
-the model can accurately recognize which steps it got right vs. wrong.
+Measures whether the model can accurately recognize which steps it got
+right vs. wrong BEFORE being told the results (D3a blind assessment).
+
+This is the core metacognitive test: can the model introspect on its own
+reasoning quality without external feedback?
 
 Score: Proportion correct (0.0 to 1.0)
 """
 
 
 def compute_task_3(pipeline, novelty_level: int = 1) -> float:
-    """Compute retrospective self-assessment accuracy."""
+    """Compute blind retrospective self-assessment accuracy."""
     from prism_v2.scoring.metrics import compute_retro_accuracy
 
     retro, corr, _ = pipeline.get_retro_data(novelty_level)

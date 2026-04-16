@@ -56,8 +56,6 @@ def _problem_role(problem_id: str) -> str:
     """Infer the logical role of a problem from its identifier."""
     if "decision" in problem_id:
         return "decision"
-    if "feedback" in problem_id:
-        return "feedback"
     return "main"
 
 
@@ -111,7 +109,6 @@ def summarize_problem_set(problems: list[dict | Problem]) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "total": len(normalized),
         "main": 0,
-        "feedback": 0,
         "decision": 0,
         "by_type": {},
         "by_difficulty": {},
@@ -141,10 +138,9 @@ def summarize_problem_set(problems: list[dict | Problem]) -> dict[str, Any]:
 
 def sample_balanced_problem_subset(
     problems: list[dict | Problem],
-    num_main: int = 10,
+    num_main: int = 20,
     seed: int = 42,
     include_decision: bool = True,
-    include_feedback: bool = False,
 ) -> list[dict]:
     """Select a balanced evaluation subset from a larger problem bank.
 
@@ -156,7 +152,6 @@ def sample_balanced_problem_subset(
 
     mains = [p for p in normalized if _problem_role(p["id"]) == "main"]
     decisions = [p for p in normalized if _problem_role(p["id"]) == "decision"]
-    feedback = [p for p in normalized if _problem_role(p["id"]) == "feedback"]
 
     buckets: defaultdict[tuple[str, str], list[dict]] = defaultdict(list)
     for problem in mains:
@@ -173,13 +168,11 @@ def sample_balanced_problem_subset(
         selected_main.append(candidates.pop(choice_index))
 
     selected = list(selected_main)
-    if include_feedback:
-        selected.extend(sorted(feedback, key=lambda p: p["id"]))
     if include_decision:
         selected.extend(sorted(decisions, key=lambda p: p["id"]))
 
-    role_order = {"main": 0, "feedback": 1, "decision": 2}
-    selected.sort(key=lambda p: (role_order[_problem_role(p["id"])], p["id"]))
+    role_order = {"main": 0, "decision": 1}
+    selected.sort(key=lambda p: (role_order.get(_problem_role(p["id"]), 99), p["id"]))
     return selected
 
 
@@ -442,7 +435,7 @@ def generate_type_b_l1(
             str(total),
             str(per_unit),
         ],
-        ground_truth_final=str(total),
+        ground_truth_final=str(per_unit),
         difficulty_metadata={
             "price_per_unit": p["price_per_unit"],
             "units": p["units"],
@@ -650,7 +643,7 @@ def generate_type_b_l2(
             str(total),
             str(per_unit),
         ],
-        ground_truth_final=str(total),
+        ground_truth_final=str(per_unit),
         difficulty_metadata={
             "price_per_unit": p["price_per_unit"],
             "units": p["units"],
@@ -889,6 +882,8 @@ PAYOFF_PROFILES = {
     "low": {"payoff_correct": 5, "payoff_wrong": -3, "payoff_decline": 1},
     "medium": {"payoff_correct": 10, "payoff_wrong": -15, "payoff_decline": 2},
     "high": {"payoff_correct": 20, "payoff_wrong": -30, "payoff_decline": 3},
+    "very_high": {"payoff_correct": 30, "payoff_wrong": -50, "payoff_decline": 4},
+    "trap": {"payoff_correct": 8, "payoff_wrong": -25, "payoff_decline": 3},
 }
 
 
@@ -1202,27 +1197,273 @@ def _generate_missing_info_l2(
     }
 
 
+def _generate_underspecified_rate_l1(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L1 Type-B problem: missing rate/percentage.
+
+    A word problem that provides the quantity and prices but is missing
+    a critical rate (e.g., "the applicable tax" without specifying the rate).
+    More subtle than the missing-quantity variant because a quantity IS
+    provided, making the problem look complete at first glance.
+    """
+    rng = random.Random(seed)
+
+    quantity = rng.randint(3, 12)
+    price = rng.randint(10, 60)
+    discount_pct = rng.choice([10, 15, 20, 25])
+    shipping = rng.randint(5, 20)
+
+    # NOTE: tax rate is deliberately described vaguely ("the applicable tax")
+    statement = (
+        f"A customer orders {quantity} items at ${price} each. "
+        f"They receive a {discount_pct}% discount on the subtotal. "
+        "The applicable sales tax is then added to the discounted price. "
+        f"Finally, a flat shipping fee of ${shipping} is added.\n\n"
+        "Calculate each of the following, showing your work step by step:\n"
+        "Step 1: Compute the subtotal (price x quantity)\n"
+        "Step 2: Compute the discount amount and price after discount\n"
+        "Step 3: Compute the tax amount and price after tax\n"
+        "Step 4: Compute the total including shipping\n"
+        "Step 5: Compute the cost per unit (total / quantity)"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 1,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal = price * quantity",
+            "Apply discount to subtotal",
+            "Apply tax after discount",
+            "Add shipping to get total",
+            "Compute per-unit cost",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "missing_tax_rate",
+        "difficulty_metadata": {
+            "quantity": quantity,
+            "price_per_unit": price,
+            "discount_pct": discount_pct,
+            "shipping": shipping,
+        },
+        "operator_preamble": None,
+    }
+
+
+def _generate_underspecified_rate_l2(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L2 Type-B problem: missing rate with Zeta ops.
+
+    Same as L1 variant but framed with Zeta-multiplication notation.
+    """
+    rng = random.Random(seed)
+
+    quantity = rng.randint(3, 10)
+    price = rng.randint(10, 50)
+    discount_flat = rng.randint(10, 40)
+    shipping = rng.randint(5, 20)
+
+    statement = (
+        f"{OPERATOR_PREAMBLE_ALPHA}"
+        f"A customer orders {quantity} items at ${price} each.\n"
+        "Use Zeta-multiplication to compute the subtotal (price (*) quantity).\n"
+        f"Then apply a flat discount of ${discount_flat} using Zeta-subtraction.\n"
+        "Compute the applicable tax amount and add it using Zeta-addition.\n"
+        f"Add the shipping fee of ${shipping} using Zeta-addition.\n"
+        "Finally, compute the per-unit cost (total / quantity, standard division).\n\n"
+        "Calculate each step, showing your work:\n"
+        "Step 1: Compute subtotal using Zeta-multiplication\n"
+        "Step 2: Apply discount using Zeta-subtraction\n"
+        "Step 3: Compute tax and apply using Zeta-addition\n"
+        "Step 4: Add shipping using Zeta-addition\n"
+        "Step 5: Compute per-unit cost (total / quantity)"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 2,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal using Zeta-multiplication",
+            "Apply discount using Zeta-subtraction",
+            "Compute tax and Zeta-add",
+            "Zeta-add shipping",
+            "Per-unit cost (total / quantity)",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "missing_tax_rate",
+        "difficulty_metadata": {
+            "quantity": quantity,
+            "price_per_unit": price,
+            "discount_flat": discount_flat,
+            "shipping": shipping,
+            "operator_set": "alpha",
+        },
+        "operator_preamble": OPERATOR_PREAMBLE_ALPHA,
+    }
+
+
+def _generate_circular_constraint_l1(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L1 Type-B problem: circular constraint.
+
+    A word problem where the discount depends on the final total, but
+    the total depends on the discount — creating an underdetermined
+    system that looks straightforward but has no closed-form integer solution.
+    """
+    rng = random.Random(seed)
+
+    quantity = rng.randint(3, 8)
+    price = rng.randint(15, 50)
+    tax_pct = rng.choice([5, 8, 10])
+    shipping = rng.randint(5, 15)
+    threshold = rng.randint(80, 150)
+
+    statement = (
+        f"A customer orders {quantity} items at ${price} each. "
+        f"They receive a 20% discount if their final total (after tax and shipping) "
+        f"exceeds ${threshold}. "
+        f"A sales tax of {tax_pct}% is applied to the subtotal after any discount. "
+        f"A flat shipping fee of ${shipping} is added.\n\n"
+        "Note: The discount applies to the subtotal, but whether the discount "
+        "applies depends on the final total which includes tax and shipping.\n\n"
+        "Calculate each of the following, showing your work step by step:\n"
+        "Step 1: Compute the subtotal (price x quantity)\n"
+        "Step 2: Determine whether the discount applies and compute price after discount\n"
+        "Step 3: Compute the tax amount and price after tax\n"
+        "Step 4: Compute the total including shipping\n"
+        "Step 5: Verify whether your discount assumption was correct"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 1,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal = price * quantity",
+            "Determine discount applicability",
+            "Apply tax",
+            "Add shipping for total",
+            "Verify discount assumption consistency",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "circular_constraint",
+        "difficulty_metadata": {
+            "quantity": quantity,
+            "price_per_unit": price,
+            "tax_pct": tax_pct,
+            "shipping": shipping,
+            "threshold": threshold,
+        },
+        "operator_preamble": None,
+    }
+
+
+def _generate_circular_constraint_l2(
+    problem_id: str,
+    seed: int = 42,
+) -> dict:
+    """Generate an unsolvable L2 Type-B problem: circular constraint with Zeta ops."""
+    rng = random.Random(seed)
+
+    quantity = rng.randint(3, 8)
+    price = rng.randint(10, 40)
+    tax_pct = rng.choice([6, 8, 11])
+    shipping = rng.randint(5, 15)
+    threshold = rng.randint(60, 120)
+
+    statement = (
+        f"{OPERATOR_PREAMBLE_ALPHA}"
+        f"A customer orders {quantity} items at ${price} each.\n"
+        f"Use Zeta-multiplication to compute the subtotal (price (*) quantity).\n"
+        f"They receive a 20% Zeta-discount if their final total "
+        f"(after tax and shipping) exceeds ${threshold}.\n"
+        f"Compute the tax as floor(after_discount * {tax_pct} / 100) and add using Zeta-addition.\n"
+        f"Add the shipping fee of ${shipping} using Zeta-addition.\n"
+        "Verify whether your discount assumption matches the final total.\n\n"
+        "Calculate each step, showing your work:\n"
+        "Step 1: Compute subtotal using Zeta-multiplication\n"
+        "Step 2: Determine discount applicability and apply\n"
+        "Step 3: Compute tax and apply using Zeta-addition\n"
+        "Step 4: Add shipping using Zeta-addition\n"
+        "Step 5: Verify discount assumption consistency"
+    )
+
+    return {
+        "id": problem_id,
+        "novelty_level": 2,
+        "problem_type": "B",
+        "difficulty": "unsolvable",
+        "problem_statement": statement,
+        "num_steps": 5,
+        "step_descriptions": [
+            "Compute subtotal using Zeta-multiplication",
+            "Determine discount and apply",
+            "Compute tax and Zeta-add",
+            "Zeta-add shipping",
+            "Verify discount assumption",
+        ],
+        "ground_truth_steps": ["UNSOLVABLE"] * 5,
+        "ground_truth_final": "UNSOLVABLE",
+        "is_solvable": False,
+        "unsolvable_reason": "circular_constraint",
+        "difficulty_metadata": {
+            "quantity": quantity,
+            "price_per_unit": price,
+            "tax_pct": tax_pct,
+            "shipping": shipping,
+            "threshold": threshold,
+            "operator_set": "alpha",
+        },
+        "operator_preamble": OPERATOR_PREAMBLE_ALPHA,
+    }
+
+
 def generate_decision_problems(
     novelty_level: int = 1,
     base_seed: int = 42,
 ) -> list[dict]:
-    """Generate 5 decision problems for one novelty level.
+    """Generate 10 decision problems for one novelty level.
 
     Produces:
-      - 3 solvable: Type A (easy/low-risk), Type B (medium/medium-risk),
-        Type C (hard/high-risk)
-      - 2 unsolvable: contradictory system, missing-info word problem
+      - 6 solvable: varied types, difficulties, and risk profiles
+      - 4 unsolvable: contradictory system, missing-info, missing-rate,
+        and circular-constraint (varying subtlety)
 
     Each problem dict is augmented with payoff fields and is_solvable flag.
     """
     prefix = "l1" if novelty_level == 1 else "l2"
     problems = []
 
-    # --- 3 solvable problems ---
+    # --- 6 solvable problems ---
     solvable_configs = [
         ("A", "easy", "low"),
         ("B", "medium", "medium"),
         ("C", "hard", "high"),
+        ("A", "hard", "very_high"),
+        ("B", "easy", "trap"),
+        ("C", "medium", "low"),
     ]
 
     gen_l1 = {
@@ -1245,27 +1486,46 @@ def generate_decision_problems(
         d.update(PAYOFF_PROFILES[risk])
         problems.append(d)
 
-    # --- 2 unsolvable problems ---
-    if novelty_level == 1:
-        contra = _generate_contradictory_system_l1(
-            f"{prefix}_decision_003", seed=base_seed + 2100
-        )
-        missing = _generate_missing_info_l1(
-            f"{prefix}_decision_004", seed=base_seed + 2101
-        )
-    else:
-        contra = _generate_contradictory_system_l2(
-            f"{prefix}_decision_003", seed=base_seed + 2100
-        )
-        missing = _generate_missing_info_l2(
-            f"{prefix}_decision_004", seed=base_seed + 2101
-        )
+    # --- 4 unsolvable problems ---
+    unsolvable_idx = len(solvable_configs)
 
-    # Unsolvable problems use medium-risk payoff (DECLINE is optimal)
-    contra.update(PAYOFF_PROFILES["medium"])
-    missing.update(PAYOFF_PROFILES["medium"])
-    problems.append(contra)
-    problems.append(missing)
+    if novelty_level == 1:
+        unsolvable = [
+            _generate_contradictory_system_l1(
+                f"{prefix}_decision_{unsolvable_idx:03d}", seed=base_seed + 2100
+            ),
+            _generate_missing_info_l1(
+                f"{prefix}_decision_{unsolvable_idx + 1:03d}", seed=base_seed + 2101
+            ),
+            _generate_underspecified_rate_l1(
+                f"{prefix}_decision_{unsolvable_idx + 2:03d}", seed=base_seed + 2102
+            ),
+            _generate_circular_constraint_l1(
+                f"{prefix}_decision_{unsolvable_idx + 3:03d}", seed=base_seed + 2103
+            ),
+        ]
+    else:
+        unsolvable = [
+            _generate_contradictory_system_l2(
+                f"{prefix}_decision_{unsolvable_idx:03d}", seed=base_seed + 2100
+            ),
+            _generate_missing_info_l2(
+                f"{prefix}_decision_{unsolvable_idx + 1:03d}", seed=base_seed + 2101
+            ),
+            _generate_underspecified_rate_l2(
+                f"{prefix}_decision_{unsolvable_idx + 2:03d}", seed=base_seed + 2102
+            ),
+            _generate_circular_constraint_l2(
+                f"{prefix}_decision_{unsolvable_idx + 3:03d}", seed=base_seed + 2103
+            ),
+        ]
+
+    # Varied payoff profiles for unsolvable: declining is always optimal
+    # but the penalty for incorrect acceptance varies
+    unsolvable_payoffs = ["medium", "medium", "high", "trap"]
+    for u, payoff_key in zip(unsolvable, unsolvable_payoffs):
+        u.update(PAYOFF_PROFILES[payoff_key])
+        problems.append(u)
 
     return problems
 
@@ -1278,13 +1538,11 @@ def generate_decision_problems(
 def generate_problem_set(
     novelty_level: int = 1,
     base_seed: int = 42,
-    num_main: int = 10,
-    num_feedback: int = 5,
+    num_main: int = 20,
 ) -> list[Problem]:
     """Generate a complete problem set for one novelty level.
 
-    Produces *num_main* problems for the main tasks (Tasks 1-4, 6) and
-    *num_feedback* additional problems for the feedback/adaptive task (Task 5).
+    Produces *num_main* problems for the main tasks (Tasks 1-4, 6).
     Problems are distributed across types A, B, C and difficulties easy/medium/hard.
     """
     problems: list[Problem] = []
@@ -1315,31 +1573,20 @@ def generate_problem_set(
         problems.append(generators[ptype](pid, diff, base_seed + idx))
         idx += 1
 
-    # Feedback problems — same decoupling
-    # NOTE: These are generated and stored in JSON for potential future use
-    # (e.g., an adaptive calibration task). They are NOT currently executed
-    # by run_all(); the Task 5 slot is filled by decision problems instead.
-    for i in range(num_feedback):
-        ptype = types[i % len(types)]
-        diff = difficulties[(i // len(types)) % len(difficulties)]
-        pid = f"{prefix}_feedback_{i:03d}"
-        problems.append(generators[ptype](pid, diff, base_seed + 1000 + i))
-
     return problems
 
 
 def generate_all_problems(
     base_seed: int = 42,
-    num_main: int = 10,
-    num_feedback: int = 5,
+    num_main: int = 20,
 ) -> dict:
     """Generate and return both L1 and L2 problem sets as serializable dicts.
 
-    Each level contains main problems, feedback problems, and decision
-    problems (for Task 5 metacognitive control).
+    Each level contains main problems and decision problems (for Task 5
+    metacognitive control).
     """
-    l1 = generate_problem_set(1, base_seed, num_main, num_feedback)
-    l2 = generate_problem_set(2, base_seed + 500, num_main, num_feedback)
+    l1 = generate_problem_set(1, base_seed, num_main)
+    l2 = generate_problem_set(2, base_seed + 500, num_main)
 
     l1_decision = generate_decision_problems(novelty_level=1, base_seed=base_seed)
     l2_decision = generate_decision_problems(novelty_level=2, base_seed=base_seed + 500)
@@ -1354,7 +1601,6 @@ def generate_problem_bank(
     novelty_level: int = 1,
     base_seed: int = 42,
     main_per_cell: int = 5,
-    include_feedback: bool = False,
     include_decision: bool = True,
 ) -> list[dict]:
     """Generate a larger, balanced bank for one novelty level.
@@ -1364,14 +1610,15 @@ def generate_problem_bank(
     to down-select a smaller evaluation slice at runtime.
     """
     num_main = len(MAIN_PROBLEM_TYPES) * len(MAIN_DIFFICULTIES) * max(main_per_cell, 0)
-    num_feedback = len(MAIN_PROBLEM_TYPES) if include_feedback else 0
 
-    bank = [p.to_dict() for p in generate_problem_set(
-        novelty_level=novelty_level,
-        base_seed=base_seed,
-        num_main=num_main,
-        num_feedback=num_feedback,
-    )]
+    bank = [
+        p.to_dict()
+        for p in generate_problem_set(
+            novelty_level=novelty_level,
+            base_seed=base_seed,
+            num_main=num_main,
+        )
+    ]
 
     if include_decision:
         bank.extend(
@@ -1381,15 +1628,14 @@ def generate_problem_bank(
             )
         )
 
-    role_order = {"main": 0, "feedback": 1, "decision": 2}
-    bank.sort(key=lambda p: (role_order[_problem_role(p["id"])], p["id"]))
+    role_order = {"main": 0, "decision": 1}
+    bank.sort(key=lambda p: (role_order.get(_problem_role(p["id"]), 99), p["id"]))
     return bank
 
 
 def generate_all_problem_banks(
     base_seed: int = 42,
     main_per_cell: int = 5,
-    include_feedback: bool = False,
     include_decision: bool = True,
 ) -> dict[str, list[dict]]:
     """Generate large balanced banks for both novelty levels."""
@@ -1398,14 +1644,12 @@ def generate_all_problem_banks(
             novelty_level=1,
             base_seed=base_seed,
             main_per_cell=main_per_cell,
-            include_feedback=include_feedback,
             include_decision=include_decision,
         ),
         "l2": generate_problem_bank(
             novelty_level=2,
             base_seed=base_seed + 500,
             main_per_cell=main_per_cell,
-            include_feedback=include_feedback,
             include_decision=include_decision,
         ),
     }
@@ -1430,7 +1674,6 @@ def save_problem_banks(
     output_dir: str = ".",
     base_seed: int = 42,
     main_per_cell: int = 5,
-    include_feedback: bool = False,
 ):
     """Generate large problem banks and save them to JSON files."""
     import os
@@ -1439,7 +1682,6 @@ def save_problem_banks(
     data = generate_all_problem_banks(
         base_seed=base_seed,
         main_per_cell=main_per_cell,
-        include_feedback=include_feedback,
         include_decision=True,
     )
     l1_path = os.path.join(output_dir, "l1_problem_bank.json")

@@ -3,8 +3,8 @@ Confidence Parser: Extract structured metacognitive data from LLM responses.
 
 Handles parsing of:
   - Dimension 1 (Prospective): weakest step, per-step confidence, bet fraction
-  - Dimension 3 (Retrospective): hardest step, self-assessment, counterfactual
-  - Feedback rounds: combined prospective + solve parsing
+  - Dimension 3a (Blind Retrospective): per-step self-assessment before results
+  - Dimension 3b (Informed Retrospective): hardest step, counterfactual
 """
 
 import re
@@ -68,27 +68,36 @@ class ProspectiveReport:
 
 
 @dataclass
+class BlindRetrospectiveReport:
+    """Parsed data from a D3a (blind retrospective) response.
+
+    Contains the model's per-step self-assessment made BEFORE
+    seeing which steps were correct/incorrect.
+    """
+
+    self_assessment: list[str] = field(default_factory=list)
+    parse_errors: list[str] = field(default_factory=list)
+
+    @property
+    def is_valid(self) -> bool:
+        return len(self.self_assessment) > 0
+
+
+@dataclass
 class RetrospectiveReport:
-    """Parsed data from a Dimension 3 (retrospective) response."""
+    """Parsed data from a D3b (informed retrospective) response.
+
+    Contains hardest step and counterfactual text, produced AFTER
+    the model sees which steps were correct/incorrect.
+    """
 
     reported_hardest_step: Optional[int] = None
-    self_assessment: list[str] = field(default_factory=list)
     counterfactual_text: str = ""
     parse_errors: list[str] = field(default_factory=list)
 
     @property
     def is_valid(self) -> bool:
-        return self.reported_hardest_step is not None and len(self.self_assessment) > 0
-
-
-@dataclass
-class FeedbackRoundReport:
-    """Parsed data from a combined feedback round response."""
-
-    prospective: ProspectiveReport = field(default_factory=ProspectiveReport)
-    step_answers: list[str] = field(default_factory=list)
-    final_answer: str = ""
-    parse_errors: list[str] = field(default_factory=list)
+        return self.reported_hardest_step is not None
 
 
 # ---------------------------------------------------------------------------
@@ -111,6 +120,14 @@ def _extract_weakest_step(
     m2 = re.search(pattern2, text, re.IGNORECASE | re.DOTALL)
     if m2:
         return int(m2.group(1))
+
+    # Pattern 3: Numbered-list format "1. N" or "1: N" — GPT-5.4 style
+    # The model answers the first prompt question with just the step number
+    # under a "1." list marker instead of repeating the header text.
+    pattern3 = r"(?:^|\n)\s*1[.:]\s*(?:step\s+)?(\d+)\s*(?:\n|$)"
+    m3 = re.search(pattern3, text, re.IGNORECASE | re.MULTILINE)
+    if m3:
+        return int(m3.group(1))
 
     return None
 
@@ -193,18 +210,30 @@ def _extract_retro_assessment(text: str, num_steps: int) -> list[str]:
 
 
 def _extract_counterfactual(text: str) -> str:
-    """Extract the counterfactual text from D3 response."""
+    """Extract the counterfactual text from D3b response."""
     # Try to find text after "COUNTERFACTUAL:" header
-    pattern = r"(?:3\.\s*)?COUNTERFACTUAL\s*:\s*(.*?)(?:\n\n|\Z)"
+    pattern = r"(?:2\.\s*)?COUNTERFACTUAL\s*:\s*(.*?)(?:\n\n|\Z)"
     m = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
     if m:
         return m.group(1).strip()
 
-    # Fallback: look for text after "3." or the third numbered item
-    pattern2 = r"3\.\s*(.*?)(?:\n\n|\Z)"
+    # Fallback: look for text after "2." numbered item (D3b has 2 questions)
+    pattern2 = r"(?:^|\n)\s*2\.\s*(.*?)(?:\n\n|\Z)"
     m2 = re.search(pattern2, text, re.DOTALL)
     if m2:
-        return m2.group(1).strip()
+        candidate = m2.group(1).strip()
+        # Avoid capturing the blind-retrospective labels section
+        # (some models put "Step N: ..." under item 2)
+        if candidate and not re.match(r"Step\s+\d+\s*:", candidate, re.IGNORECASE):
+            return candidate
+
+    # Fallback: "3." numbered item (GPT-5.4 style: 1=hardest, 2=labels, 3=counterfactual)
+    pattern3 = r"(?:^|\n)\s*3\.\s*(.*?)(?:\n\n|\Z)"
+    m3 = re.search(pattern3, text, re.DOTALL)
+    if m3:
+        candidate = m3.group(1).strip()
+        if candidate:
+            return candidate
 
     return ""
 
@@ -241,8 +270,30 @@ def parse_prospective(response_text: str, num_steps: int) -> ProspectiveReport:
     return report
 
 
+def parse_blind_retrospective(
+    response_text: str, num_steps: int
+) -> BlindRetrospectiveReport:
+    """Parse a D3a (blind retrospective) response.
+
+    Extracts per-step self-assessment labels produced BEFORE the model
+    was told which steps were correct/incorrect.
+    """
+    report = BlindRetrospectiveReport()
+    report.self_assessment = _extract_retro_assessment(response_text, num_steps)
+
+    # Check if all defaulted (no labels found)
+    if all(a == "uncertain and wrong" for a in report.self_assessment):
+        report.parse_errors.append("No retrospective labels found in blind assessment")
+
+    return report
+
+
 def parse_retrospective(response_text: str, num_steps: int) -> RetrospectiveReport:
-    """Parse a Dimension 3 (retrospective) response into structured data."""
+    """Parse a D3b (informed retrospective) response.
+
+    Extracts hardest step and counterfactual text produced AFTER the
+    model was told which steps were correct/incorrect.
+    """
     report = RetrospectiveReport()
 
     # Extract hardest step
@@ -256,53 +307,9 @@ def parse_retrospective(response_text: str, num_steps: int) -> RetrospectiveRepo
     if report.reported_hardest_step is None:
         report.parse_errors.append("Could not extract reported hardest step")
 
-    # Extract self-assessment
-    report.self_assessment = _extract_retro_assessment(response_text, num_steps)
-
     # Extract counterfactual
     report.counterfactual_text = _extract_counterfactual(response_text)
     if not report.counterfactual_text:
         report.parse_errors.append("Could not extract counterfactual text")
-
-    return report
-
-
-def parse_feedback_round(
-    response_text: str,
-    num_steps: int,
-) -> FeedbackRoundReport:
-    """Parse a combined feedback round response (prospective + solve)."""
-    report = FeedbackRoundReport()
-
-    # Split the response: prospective part comes before the solution.
-    # The prospective section also has "Step 1: [label]" lines for
-    # confidence ratings, so we must NOT match those.  We use a
-    # negative lookahead to skip "Step 1" lines followed by a
-    # confidence label (definitely/probably/uncertain).  The first
-    # "Step 1" that is NOT followed by a confidence label is the
-    # start of the solve section.
-    _conf_labels_lookahead = r"(?!\s*[\"']?(?:definitely|probably|uncertain)\b)"
-    solve_marker = re.search(
-        rf"\n\s*(?:Step\s+1\s*[:\.]{_conf_labels_lookahead}|Now\s+solv|Solution|Let me solve)",
-        response_text,
-        re.IGNORECASE,
-    )
-
-    if solve_marker:
-        prospective_text = response_text[: solve_marker.start()]
-        solve_text = response_text[solve_marker.start() :]
-    else:
-        # Can't split cleanly — parse the whole thing for both
-        prospective_text = response_text
-        solve_text = response_text
-
-    # Parse prospective portion
-    report.prospective = parse_prospective(prospective_text, num_steps)
-
-    # Parse solving portion — extract step answers and final answer
-    from prism_v2.scoring.step_scorer import extract_step_answers, extract_final_answer
-
-    report.step_answers = extract_step_answers(solve_text, num_steps)
-    report.final_answer = extract_final_answer(solve_text)
 
     return report
